@@ -8,7 +8,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_PREFIX: ghcr.io/duynhne
+  IMAGE_PREFIX: ghcr.io/diemdoo
 
 jobs:
   build-and-push:
