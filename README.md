@@ -1,1 +1,1 @@
-# Bookstore - Hệ Thống Quản Lý Bán Sách Online
+# Bookstore
