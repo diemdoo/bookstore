@@ -1,0 +1,92 @@
+sequenceDiagram
+    participant U as User
+    participant FE as Frontend
+    participant BE as Backend
+    participant DB as Database
+    
+    %% Customer Register
+    rect rgb(200, 220, 255)
+        Note over U,DB: Customer Registration Flow
+        U->>FE: Fill register form
+        FE->>BE: POST /api/register
+        BE->>BE: Validate data
+        BE->>BE: Hash password (bcrypt)
+        BE->>BE: Generate customer_code (KH001, KH002...)
+        BE->>DB: Insert new user
+        DB-->>BE: User created
+        BE->>BE: Create session
+        BE-->>FE: 201 Created + User data
+        FE->>FE: Save to AuthContext
+        FE-->>U: Redirect to homepage (logged in)
+    end
+    
+    %% Customer Login
+    rect rgb(220, 255, 220)
+        Note over U,DB: Customer Login Flow
+        U->>FE: Enter username/password
+        FE->>BE: POST /api/login
+        BE->>DB: Find user by username
+        DB-->>BE: User found
+        BE->>BE: check_password(hash, input)
+        alt Password valid
+            BE->>BE: Create session, set user_id
+            BE-->>FE: 200 OK + User data
+            FE->>FE: Save to AuthContext
+            FE-->>U: Redirect to homepage
+        else Password invalid
+            BE-->>FE: 401 Unauthorized
+            FE-->>U: Show error message
+        end
+    end
+    
+    %% Admin Login
+    rect rgb(255, 230, 200)
+        Note over U,DB: Admin Login Flow
+        U->>FE: Go to /admin/login
+        FE->>FE: Show Admin Login Page
+        U->>FE: Enter admin credentials
+        FE->>BE: POST /api/login
+        BE->>DB: Find user by username
+        DB-->>BE: User found (role=admin)
+        BE->>BE: check_password(hash, input)
+        alt Password valid & role=admin
+            BE->>BE: Create session, set user_id
+            BE-->>FE: 200 OK + Admin user data
+            FE->>FE: Save to AuthContext
+            FE-->>U: Redirect to /admin dashboard
+        else Invalid credentials or not admin
+            BE-->>FE: 401 Unauthorized
+            FE-->>U: Show error message
+        end
+    end
+    
+    %% Authenticated Request
+    rect rgb(230, 230, 230)
+        Note over U,DB: Authenticated API Request
+        U->>FE: Perform action (e.g. add to cart)
+        FE->>BE: POST /api/cart (with session cookie)
+        BE->>BE: @login_required decorator
+        BE->>BE: Check session['user_id']
+        alt Session valid
+            BE->>DB: Execute operation
+            DB-->>BE: Success
+            BE-->>FE: 200 OK
+            FE-->>U: Show success message
+        else Session invalid/expired
+            BE-->>FE: 401 Unauthorized
+            FE->>FE: Clear AuthContext
+            FE-->>U: Redirect to /login
+        end
+    end
+    
+    %% Logout
+    rect rgb(255, 200, 200)
+        Note over U,DB: Logout Flow
+        U->>FE: Click logout
+        FE->>BE: POST /api/logout
+        BE->>BE: Clear session
+        BE-->>FE: 200 OK
+        FE->>FE: Clear AuthContext
+        FE-->>U: Redirect to homepage (guest)
+    end
+

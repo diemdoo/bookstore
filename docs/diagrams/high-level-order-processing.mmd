@@ -1,0 +1,92 @@
+%%{init: {'theme':'base', 'themeVariables': { 'primaryColor':'#6366f1'}}}%%
+sequenceDiagram
+    participant C as Customer
+    participant W as Website
+    participant A as Admin
+    participant S as System
+    participant D as Delivery
+    
+    rect rgb(240, 248, 255)
+        Note over C,S: 1. Order Placement
+        C->>W: Browse and select books
+        C->>W: Add items to cart
+        C->>W: Fill shipping address
+        C->>W: Place order with COD payment
+        W->>S: Create order record
+        S-->>C: Order confirmation<br/>Order ID & status: Pending
+        S->>A: Notify new order
+    end
+    
+    rect rgb(240, 255, 240)
+        Note over A,S: 2. Order Review & Confirmation
+        A->>S: View pending orders
+        S-->>A: Display order details
+        A->>A: Review order information<br/>Check product availability
+        alt Stock available
+            A->>S: Confirm order
+            S->>S: Update status: Confirmed
+            S-->>C: Notification: Order confirmed
+        else Out of stock
+            A->>S: Cancel order
+            S->>S: Update status: Cancelled
+            S-->>C: Notification: Order cancelled<br/>Refund if pre-paid
+        end
+    end
+    
+    rect rgb(255, 250, 240)
+        Note over A,D: 3. Order Preparation
+        A->>A: Locate books in warehouse
+        A->>A: Check book condition
+        A->>A: Package books securely
+        A->>A: Prepare shipping label<br/>with customer address
+        A->>A: Include invoice<br/>COD amount noted
+        A->>S: Mark as ready for shipment
+    end
+    
+    rect rgb(255, 240, 245)
+        Note over A,D: 4. Shipping
+        A->>D: Hand over package<br/>to delivery service
+        D->>D: Assign delivery route
+        D->>D: Transport to customer area
+        D->>S: Update tracking status
+        S-->>C: Notification: Order shipped<br/>Tracking information
+    end
+    
+    rect rgb(245, 240, 255)
+        Note over C,D: 5. Delivery & Payment
+        D->>C: Deliver package to address
+        C->>C: Inspect package
+        alt Package acceptable
+            C->>D: Accept delivery
+            C->>D: Pay cash on delivery
+            D-->>C: Provide receipt
+            D->>S: Confirm delivery & payment
+        else Package damaged
+            C->>D: Reject delivery
+            D->>A: Return to sender
+            A->>C: Contact for resolution
+        end
+    end
+    
+    rect rgb(255, 245, 230)
+        Note over A,S: 6. Order Completion
+        D->>A: Report successful delivery<br/>& payment collected
+        A->>S: Update order status: Completed
+        A->>S: Update payment: Paid
+        S->>S: Update inventory levels
+        S->>S: Record revenue
+        S-->>C: Thank you message<br/>Request feedback
+    end
+    
+    rect rgb(230, 255, 240)
+        Note over C,S: 7. Post-delivery
+        alt Customer satisfied
+            C->>W: May leave review
+            C->>W: Consider future purchases
+        else Customer has issues
+            C->>A: Contact customer support
+            A->>A: Review complaint
+            A->>C: Provide resolution<br/>Replacement or refund
+        end
+    end
+

@@ -1,0 +1,67 @@
+%%{init: {'theme':'base', 'themeVariables': { 'primaryColor':'#6366f1'}}}%%
+flowchart TD
+    Start([Banners Management]) --> ListBanners[GET /api/banners?position=all<br/>Display all banners]
+    
+    ListBanners --> Action{Select Action}
+    
+    %% Add Banner
+    Action -->|Add Banner| AddForm[Fill Banner Form:<br/>- Title<br/>- Description<br/>- Upload Image<br/>- Link URL<br/>  e.g. /books?category=Sach Tieng Viet<br/>- Position: main/side_top/side_bottom<br/>- Display Order]
+    AddForm --> ValidateAdd{Valid?}
+    ValidateAdd -->|No| ShowError1[Show Validation Errors]
+    ShowError1 --> AddForm
+    
+    ValidateAdd -->|Yes| UploadBanner[POST /api/upload<br/>Upload banner image to Cloudflare R2]
+    UploadBanner --> CreateBanner[POST /api/banners<br/>Create banner record]
+    CreateBanner --> InsertDB[INSERT INTO banners]
+    InsertDB --> Success1[Show Success Toast]
+    Success1 --> ListBanners
+    
+    %% Edit Banner
+    Action -->|Edit Banner| LoadBanner[GET /api/banners/:id<br/>Load banner data]
+    LoadBanner --> EditForm[Edit Banner Form<br/>Modify fields]
+    EditForm --> ValidateEdit{Valid?}
+    ValidateEdit -->|No| ShowError2[Show Errors]
+    ShowError2 --> EditForm
+    
+    ValidateEdit -->|Yes| CheckNewImage{New Image?}
+    CheckNewImage -->|Yes| UploadNew[POST /api/upload]
+    CheckNewImage -->|No| UpdateBanner
+    UploadNew --> UpdateBanner[PUT /api/banners/:id]
+    UpdateBanner --> UpdateDB[UPDATE banners SET ...]
+    UpdateDB --> Success2[Show Success Toast]
+    Success2 --> ListBanners
+    
+    %% Toggle Active Status
+    Action -->|Toggle Active| ToggleStatus[PUT /api/banners/:id/status]
+    ToggleStatus --> UpdateActive[UPDATE banners<br/>SET is_active = NOT is_active]
+    UpdateActive --> Success3[Show Success Toast]
+    Success3 --> ListBanners
+    
+    %% Delete Banner
+    Action -->|Delete Banner| ConfirmDelete[Show ConfirmDialog:<br/>'Bạn có chắc chắn<br/>muốn xóa banner này?']
+    ConfirmDelete --> ConfirmChoice{Confirm?}
+    ConfirmChoice -->|No| ListBanners
+    ConfirmChoice -->|Yes| DeleteBanner[DELETE /api/banners/:id]
+    DeleteBanner --> DeleteDB[DELETE FROM banners<br/>WHERE id = ?]
+    DeleteDB --> Success4[Show Success Toast]
+    Success4 --> ListBanners
+    
+    %% Reorder Banners
+    Action -->|Change Order| DragDrop[Drag & Drop to<br/>reorder display_order]
+    DragDrop --> UpdateOrder[PUT /api/banners/:id<br/>Update display_order]
+    UpdateOrder --> UpdateOrderDB[UPDATE banners<br/>SET display_order = ?]
+    UpdateOrderDB --> ListBanners
+    
+    Action -->|Back| Back([Return to Dashboard])
+    
+    style Start fill:#e1f5e1
+    style Back fill:#ffe1e1
+    style ValidateAdd fill:#fff4e1
+    style ValidateEdit fill:#fff4e1
+    style CheckNewImage fill:#fff4e1
+    style ConfirmChoice fill:#fff4e1
+    style Success1 fill:#d1fae5
+    style Success2 fill:#d1fae5
+    style Success3 fill:#d1fae5
+    style Success4 fill:#d1fae5
+

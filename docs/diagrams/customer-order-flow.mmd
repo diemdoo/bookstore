@@ -1,0 +1,171 @@
+sequenceDiagram
+    participant C as Customer
+    participant FE as Frontend
+    participant BE as Backend<br/>(Routes)
+    participant DB as Database
+    
+    %% Browse Books
+    rect rgb(240, 248, 255)
+        Note over C,DB: 1. Browse Books
+        C->>FE: Visit homepage
+        FE->>BE: GET /api/books?page=1&per_page=15
+        BE->>DB: Query books with pagination
+        DB-->>BE: Books data
+        BE-->>FE: JSON response
+        FE-->>C: Display books (5x3 grid)
+        
+        C->>FE: Click "Xem Thêm"
+        FE->>BE: GET /api/books?page=2&per_page=15
+        BE->>DB: Query next page
+        DB-->>BE: More books
+        BE-->>FE: JSON response
+        FE-->>C: Append to existing list
+    end
+    
+    %% Add to Cart
+    rect rgb(240, 255, 240)
+        Note over C,DB: 2. Add to Cart
+        C->>FE: Click book → Enter quantity
+        FE-->>C: Check if logged in
+        alt Not logged in
+            FE-->>C: Redirect to /login
+            C->>FE: Login successful
+        end
+        C->>FE: Click "Add to cart"
+        FE->>BE: POST /api/cart {book_id, quantity}
+        BE->>BE: Check @login_required
+        BE->>DB: Check if book in cart already
+        alt Book already in cart
+            BE->>DB: UPDATE cart SET quantity = quantity + input
+        else New book
+            BE->>DB: INSERT INTO cart
+        end
+        DB-->>BE: Success
+        BE-->>FE: 201 Created + cart_item
+        FE->>FE: Update CartContext (total items)
+        FE-->>C: Toast: "Đã thêm vào giỏ hàng"
+    end
+    
+    %% View & Update Cart
+    rect rgb(255, 250, 240)
+        Note over C,DB: 3. View & Manage Cart
+        C->>FE: Click cart icon
+        FE->>BE: GET /api/cart
+        BE->>DB: SELECT * FROM cart WHERE user_id=?
+        DB-->>BE: Cart items with book details
+        BE-->>FE: JSON {cart_items}
+        FE-->>C: Display cart page with selection checkboxes
+        
+        opt Select Items
+            C->>FE: Check/uncheck items
+            FE->>FE: Calculate total for selected items only
+        end
+        
+        opt Update Quantity
+            C->>FE: Change quantity → Click update
+            FE->>BE: PUT /api/cart/:id {quantity}
+            BE->>DB: UPDATE cart SET quantity=?
+            DB-->>BE: Success
+            BE-->>FE: 200 OK
+            FE->>FE: Recalculate total
+            FE-->>C: Update UI
+        end
+        
+        opt Remove Single Item
+            C->>FE: Click trash icon
+            FE-->>C: Show ConfirmDialog
+            C->>FE: Confirm
+            FE->>BE: DELETE /api/cart/:id
+            BE->>DB: DELETE FROM cart WHERE id=?
+            DB-->>BE: Success
+            BE-->>FE: 200 OK
+            FE->>FE: Remove from list, update total
+            FE-->>C: Update UI
+        end
+        
+        opt Remove Multiple Items
+            C->>FE: Select items → Click "Xóa (X)"
+            FE-->>C: Show ConfirmDialog
+            C->>FE: Confirm
+            loop For each selected item
+                FE->>BE: DELETE /api/cart/:id
+                BE->>DB: DELETE FROM cart WHERE id=?
+            end
+            FE->>FE: Update list & total
+            FE-->>C: Toast: "Đã xóa X sản phẩm"
+        end
+    end
+    
+    %% Checkout
+    rect rgb(255, 240, 245)
+        Note over C,DB: 4. Checkout Process
+        C->>FE: Select items → Click "Thanh toán (X)"
+        FE-->>C: Show checkout page with selected items
+        C->>FE: Fill shipping address form (*required fields)
+        C->>FE: Click "Đặt hàng"
+        FE->>BE: POST /api/orders {shipping_address}
+        
+        Note over BE: Transaction được quản lý trực tiếp trong route function
+        BE->>DB: db.session.begin()<br/>BEGIN TRANSACTION
+        
+        BE->>DB: Query cart items (Cart.query.filter_by(user_id=?).join(Book).all())
+        DB-->>BE: Cart items with book data
+        
+        alt Cart is empty
+            BE->>DB: db.session.rollback()
+            BE-->>FE: 400 Bad Request {error: "Giỏ hàng trống"}
+            FE-->>C: Show error
+        end
+        
+        BE->>BE: Validate stock for each item
+        BE->>BE: Calculate total amount
+        
+        BE->>DB: Create Order (Order model)
+        BE->>DB: db.session.add(new_order)
+        BE->>DB: db.session.flush()  # Get order.id
+        
+        loop For each cart item
+            BE->>DB: Create OrderItem (OrderItem model)
+            BE->>DB: Update book stock (book.stock -= quantity)
+        end
+        
+        BE->>DB: Delete cart items (Cart.query.filter_by(user_id=?).delete())
+        BE->>DB: db.session.commit()<br/>COMMIT TRANSACTION
+        DB-->>BE: Transaction successful
+        
+        BE->>BE: order.to_dict()  # Convert to dict trực tiếp
+        BE-->>FE: 201 Created + Order details
+        FE->>FE: Refresh cart from backend (now empty)
+        FE-->>C: Redirect to /orders
+        FE-->>C: Toast: "Đặt hàng thành công!"
+    end
+    
+    %% View Orders
+    rect rgb(245, 240, 255)
+        Note over C,DB: 5. View Order History
+        C->>FE: Click "Đơn hàng của tôi"
+        FE->>BE: GET /api/orders
+        BE->>DB: SELECT orders with items WHERE user_id=?
+        DB-->>BE: Orders list with items
+        BE-->>FE: JSON {orders: [...]}
+        FE-->>C: Display order history<br/>with COD badge & status badge
+        
+        C->>FE: Click order to view details
+        FE->>BE: GET /api/orders/:id
+        BE->>DB: SELECT order with items WHERE id=?
+        DB-->>BE: Order details
+        BE-->>FE: JSON order object
+        FE-->>C: Display full order details
+    end
+    
+    %% Track Order Status
+    rect rgb(255, 245, 230)
+        Note over C,DB: 6. Track Order Status
+        C->>FE: Refresh order page
+        FE->>BE: GET /api/orders/:id
+        BE->>DB: Get current status & payment_status
+        DB-->>BE: Order with updated status
+        BE-->>FE: JSON with status
+        FE-->>C: Display status badges:<br/>- COD (payment method)<br/>- Order status (Pending/Confirmed/Completed/Cancelled)
+    end
+

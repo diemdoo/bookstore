@@ -1,0 +1,114 @@
+graph LR
+    %% User Layer
+    User([User<br/>Customer/Admin])
+    
+    %% Client Layer
+    subgraph "Client Layer - Browser"
+        Browser[Web Browser<br/>Chrome, Firefox, Safari]
+        
+        subgraph "React Application"
+            Components[React Components<br/>Pages, UI Elements]
+            Contexts[Context State<br/>Auth, Cart, Toast]
+            ReactRouter[React Router<br/>Navigation]
+        end
+        
+        APIService[API Service Layer<br/>Axios HTTP Client]
+    end
+    
+    %% Network Layer
+    HTTP[HTTP/HTTPS<br/>REST API Calls]
+    
+    %% Server Layer
+    subgraph "Server Layer - Backend"
+        Nginx[Nginx<br/>Reverse Proxy<br/>Port 80]
+        
+        subgraph "Flask Application"
+            Routes[Flask Routes<br/>API Endpoints<br/>Business Logic in Routes]
+            
+            subgraph "Models Layer"
+                Models[SQLAlchemy Models<br/>User, Book, Order, Cart, etc.]
+            end
+            
+            subgraph "Utils Layer"
+                Utils[Helper Functions<br/>hash_password, decorators, validation]
+                StorageUtils[Storage Utils<br/>Cloudflare R2]
+            end
+        end
+    end
+    
+    %% Persistence Layer
+    subgraph "Persistence Layer"
+        PostgreSQL[(PostgreSQL Database<br/>Port 5432<br/>User, Book, Order, Cart)]
+        R2[Cloudflare R2<br/>Object Storage<br/>cdn.duyne.me]
+    end
+    
+    %% Data Flow - Request
+    User -->|1. Interact| Browser
+    Browser -->|2. Render| Components
+    Components <-->|3. State Management| Contexts
+    Components -->|4. Navigation| ReactRouter
+    Components -->|5. API Call| APIService
+    
+    APIService -->|6. HTTP Request| HTTP
+    HTTP -->|7. Forward Request| Nginx
+    Nginx -->|8. Route to Backend| Routes
+    
+    Routes -->|9. Query/Command| Models
+    Routes -->|10. Use Helpers| Utils
+    Routes -->|11. File Upload| StorageUtils
+    
+    Models -->|12. SQL Operations via ORM| PostgreSQL
+    StorageUtils -->|13. File Upload/Download| R2
+    
+    %% Data Flow - Response
+    PostgreSQL -->|14. Data| Models
+    R2 -->|15. File URL| StorageUtils
+    
+    Models -->|16. Model Objects| Routes
+    StorageUtils -->|17. File URL| Routes
+    Routes -->|18. Convert to dict| Routes
+    Routes -->|19. JSON Response| Nginx
+    Nginx -->|20. HTTP Response| HTTP
+    HTTP -->|21. Response Data| APIService
+    
+    APIService -->|22. Update State| Contexts
+    APIService -->|23. Update UI| Components
+    Components -->|24. Display| Browser
+    Browser -->|25. Show Result| User
+    
+    %% Specific Flows
+    subgraph "Authentication Flow"
+        AuthFlow[Login Request → Routes → Query User Model → PostgreSQL<br/>← user.to_dict() → Session Created → Frontend Updates AuthContext]
+    end
+    
+    subgraph "Cart Flow"
+        CartFlow[Add to Cart → Routes → Query Cart/Book Models → PostgreSQL<br/>← cart.to_dict() → Frontend Updates CartContext → Badge Count]
+    end
+    
+    subgraph "Order Flow"
+        OrderFlow[Checkout → Routes (Transaction in route function)<br/>→ Query Models → Create Order, Order Items, Update Stock, Clear Cart<br/>← order.to_dict() → Frontend Redirects to Orders Page]
+    end
+    
+    subgraph "File Upload Flow"
+        FileFlow[Upload Image → Routes → Storage Utils → Cloudflare R2<br/>← File URL Returned (cdn.duyne.me) → Save URL in PostgreSQL via Models]
+    end
+    
+    %% Styling
+    style User fill:#e1f5e1,stroke:#22c55e,stroke-width:2px
+    style Browser fill:#a5f3fc,stroke:#0891b2,stroke-width:2px
+    style Components fill:#dbeafe,stroke:#3b82f6
+    style Contexts fill:#fef08a,stroke:#ca8a04
+    style APIService fill:#c7d2fe,stroke:#6366f1,stroke-width:2px
+    style HTTP fill:#e9d5ff,stroke:#9333ea,stroke-width:2px
+    style Nginx fill:#fed7aa,stroke:#ea580c,stroke-width:2px
+    style Routes fill:#fda4af,stroke:#e11d48,stroke-width:2px
+    style Models fill:#c7d2fe,stroke:#6366f1,stroke-width:2px
+    style Utils fill:#fef08a,stroke:#ca8a04
+    style StorageUtils fill:#d1fae5,stroke:#059669
+    style PostgreSQL fill:#fef3c7,stroke:#eab308,stroke-width:3px
+    style R2 fill:#d1fae5,stroke:#059669,stroke-width:2px
+    
+    style AuthFlow fill:#e0e7ff,stroke:#6366f1
+    style CartFlow fill:#fef3c7,stroke:#ca8a04
+    style OrderFlow fill:#fecdd3,stroke:#e11d48
+    style FileFlow fill:#d1fae5,stroke:#059669

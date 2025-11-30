@@ -15,6 +15,8 @@ const CategoryPage: React.FC = () => {
   const [loading, setLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(true)
   const perPage = 20
 
   useEffect(() => {
@@ -29,16 +31,17 @@ const CategoryPage: React.FC = () => {
         const foundCategory = categoriesData.categories.find(c => c.key === categoryKey)
         setCategory(foundCategory || null)
         
-        // Fetch books in this category using RESTful endpoint
-        // Decode categoryKey from URL if needed
+        // Fetch books in this category - only page 1 for initial load
         const decodedKey = decodeURIComponent(categoryKey)
         const booksData = await categoriesService.getCategoryBooks(decodedKey, {
-          page: currentPage,
+          page: 1,
           per_page: perPage
         })
         
         setBooks(booksData.books)
         setTotalPages(booksData.pages)
+        setCurrentPage(1)
+        setHasMore(booksData.pages > 1)
       } catch (error) {
         console.error('Failed to fetch category data:', error)
       } finally {
@@ -47,7 +50,31 @@ const CategoryPage: React.FC = () => {
     }
 
     fetchData()
-  }, [categoryKey, currentPage])
+  }, [categoryKey])
+
+  const handleLoadMore = async () => {
+    if (loadingMore || !hasMore || !categoryKey) return
+    
+    const nextPage = currentPage + 1
+    setLoadingMore(true)
+    
+    try {
+      const decodedKey = decodeURIComponent(categoryKey)
+      const booksData = await categoriesService.getCategoryBooks(decodedKey, {
+        page: nextPage,
+        per_page: perPage
+      })
+      
+      // Append new books to existing array
+      setBooks(prev => [...prev, ...booksData.books])
+      setCurrentPage(nextPage)
+      setHasMore(nextPage < booksData.pages)
+    } catch (error) {
+      console.error('Failed to load more books:', error)
+    } finally {
+      setLoadingMore(false)
+    }
+  }
 
   const breadcrumbItems = [
     { label: 'Trang chủ', href: '/' },
@@ -102,33 +129,31 @@ const CategoryPage: React.FC = () => {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
               {books.map(book => (
-                <BookCard key={book.id} book={book} />
+                <BookCard key={book.id} book={book} compact showSold={true} />
               ))}
             </div>
 
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex justify-center items-center gap-2 mt-8">
+            {/* Load More Button */}
+            {hasMore && (
+              <div className="flex justify-center mt-8">
                 <button
-                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                  disabled={currentPage === 1}
-                  className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                  onClick={handleLoadMore}
+                  disabled={loadingMore}
+                  className="px-6 py-3 bg-primary text-white rounded-lg font-semibold hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
                 >
-                  Trang trước
-                </button>
-                
-                <span className="px-4 py-2 text-gray-700">
-                  Trang {currentPage} / {totalPages}
-                </span>
-                
-                <button
-                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                  disabled={currentPage === totalPages}
-                  className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                >
-                  Trang sau
+                  {loadingMore ? (
+                    <>
+                      <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Đang tải...
+                    </>
+                  ) : (
+                    'Xem Thêm'
+                  )}
                 </button>
               </div>
             )}

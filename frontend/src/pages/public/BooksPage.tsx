@@ -97,9 +97,9 @@ const BooksPage: React.FC = () => {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-6 mb-8">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
               {books.map((book) => (
-                <BookCard key={book.id} book={book} />
+                <BookCard key={book.id} book={book} compact />
               ))}
             </div>
 

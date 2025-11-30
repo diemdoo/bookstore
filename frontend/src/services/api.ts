@@ -511,5 +511,18 @@ export const categoriesService = {
   }
 }
 
+// Chatbot Service
+export const chatbotService = {
+  async sendMessage(question: string): Promise<string> {
+    try {
+      const response = await api.post('/chatbot', { question })
+      return response.data.answer
+    } catch (error) {
+      handleError(error as AxiosError)
+      throw error
+    }
+  },
+}
+
 export default api
 

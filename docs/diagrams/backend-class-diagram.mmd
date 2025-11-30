@@ -1,0 +1,191 @@
+classDiagram
+    %% Models Layer
+    class User {
+        +int id
+        +string username
+        +string email
+        +string password_hash
+        +string full_name
+        +string role
+        +boolean is_active
+        +string customer_code
+        +datetime created_at
+        +to_dict() dict
+        +generate_customer_code() string$
+    }
+    
+    class Book {
+        +int id
+        +string title
+        +string author
+        +string category
+        +text description
+        +decimal price
+        +int stock
+        +string image_url
+        +datetime created_at
+        +datetime updated_at
+        +to_dict() dict
+    }
+    
+    class Category {
+        +int id
+        +string name
+        +string description
+        +datetime created_at
+        +to_dict() dict
+    }
+    
+    class Cart {
+        +int id
+        +int user_id
+        +int book_id
+        +int quantity
+        +datetime created_at
+        +to_dict() dict
+    }
+    
+    class Order {
+        +int id
+        +int user_id
+        +decimal total_amount
+        +string status
+        +string payment_status
+        +text shipping_address
+        +datetime created_at
+        +datetime updated_at
+        +to_dict() dict
+    }
+    
+    class OrderItem {
+        +int id
+        +int order_id
+        +int book_id
+        +int quantity
+        +decimal price
+        +to_dict() dict
+    }
+    
+    class Banner {
+        +int id
+        +string title
+        +text description
+        +string image_url
+        +string link
+        +string position
+        +int display_order
+        +boolean is_active
+        +datetime created_at
+        +to_dict() dict
+    }
+    
+    %% Routes Layer
+    class AuthRoutes {
+        +register() Response
+        +login() Response
+        +logout() Response
+        +get_current_user() Response
+        +update_profile() Response
+    }
+    
+    class BooksRoutes {
+        +get_books() Response
+        +get_book_by_id() Response
+        +get_bestsellers() Response
+        +create_book() Response
+        +update_book() Response
+        +delete_book() Response
+    }
+    
+    class CartRoutes {
+        +get_cart() Response
+        +add_to_cart() Response
+        +update_cart_item() Response
+        +remove_from_cart() Response
+    }
+    
+    class OrdersRoutes {
+        +get_orders() Response
+        +create_order() Response
+        +get_order_by_id() Response
+    }
+    
+    class AdminRoutes {
+        +get_users() Response
+        +update_user_status() Response
+        +get_all_orders() Response
+        +update_order_status() Response
+        +get_statistics() Response
+    }
+    
+    class CategoriesRoutes {
+        +get_categories() Response
+        +get_category_by_id() Response
+        +get_books_by_category() Response
+        +create_category() Response
+        +update_category() Response
+        +delete_category() Response
+    }
+    
+    class BannersRoutes {
+        +get_active_banners() Response
+        +get_banner_by_id() Response
+        +create_banner() Response
+        +update_banner() Response
+        +delete_banner() Response
+    }
+    
+    %% Utils Layer
+    class Helpers {
+        +hash_password(password) string
+        +check_password(hashed, plain) boolean
+        +validate_email(email) boolean
+        +validate_password(password) boolean
+        +login_required() decorator
+        +admin_required() decorator
+    }
+    
+    class Storage {
+        +upload_file(file, folder) string
+    }
+    
+    %% Relationships - Routes to Models
+    AuthRoutes --> User : queries
+    BooksRoutes --> Book : queries
+    BooksRoutes --> Category : queries
+    CartRoutes --> Cart : queries
+    CartRoutes --> Book : queries
+    OrdersRoutes --> Order : queries
+    OrdersRoutes --> OrderItem : queries
+    OrdersRoutes --> Cart : queries
+    OrdersRoutes --> Book : queries
+    AdminRoutes --> User : queries
+    AdminRoutes --> Order : queries
+    AdminRoutes --> OrderItem : queries
+    AdminRoutes --> Book : queries
+    CategoriesRoutes --> Category : queries
+    CategoriesRoutes --> Book : queries
+    BannersRoutes --> Banner : queries
+    
+    %% Relationships - Routes to Utils
+    AuthRoutes --> Helpers : uses
+    BooksRoutes --> Helpers : uses
+    CartRoutes --> Helpers : uses
+    OrdersRoutes --> Helpers : uses
+    AdminRoutes --> Helpers : uses
+    CategoriesRoutes --> Helpers : uses
+    BannersRoutes --> Helpers : uses
+    BannersRoutes --> Storage : uses
+    
+    %% Model Relationships
+    User "1" --> "0..*" Cart : has
+    User "1" --> "0..*" Order : places
+    Book "1" --> "0..*" Cart : in
+    Book "1" --> "0..*" OrderItem : contains
+    Order "1" --> "0..*" OrderItem : has
+    Category "1" --> "0..*" Book : categorizes
+    
+    note for AuthRoutes "Handles authentication,\nregistration, and\nprofile management.\nDirectly queries User model."
+    note for OrdersRoutes "Manages order creation\nwith transaction safety.\nDirectly queries Order, OrderItem,\nCart, and Book models."
+    note for User "Excludes password_hash\nin to_dict() method"
+    note for Helpers "Provides reusable\nutility functions:\npassword hashing,\ndecorators, validation"

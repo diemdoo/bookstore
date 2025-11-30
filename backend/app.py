@@ -3,6 +3,7 @@ Flask app chính cho Bookstore API
 """
 from flask import Flask, send_from_directory, jsonify
 from flask_cors import CORS
+import logging
 from config import Config
 from models import db
 from routes.auth import auth_bp
@@ -23,6 +24,16 @@ def create_app():
     static_path = 'static' if os.path.exists('static') else '../frontend'
     app = Flask(__name__, static_folder=static_path, static_url_path='')
     app.config.from_object(Config)
+    
+    # Setup logging để logs hiển thị trong Docker
+    log_level = getattr(logging, Config.LOG_LEVEL.upper(), logging.INFO)
+    logging.basicConfig(
+        level=log_level,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
+    # Đảm bảo Flask logger cũng hiển thị
+    app.logger.setLevel(log_level)
     
     # CORS để frontend có thể gọi API
     CORS(app, 

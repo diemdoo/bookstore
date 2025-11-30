@@ -1,0 +1,94 @@
+sequenceDiagram
+    participant A as Admin
+    participant FE as Admin Frontend
+    participant BE as Backend
+    participant DB as Database
+    participant C as Customer
+    
+    %% View All Orders
+    rect rgb(240, 248, 255)
+        Note over A,C: 1. View All Orders
+        A->>FE: Navigate to Orders Management
+        FE->>BE: GET /api/admin/orders
+        BE->>BE: Check @admin_required
+        BE->>DB: Order.query.options(joinedload(Order.user))<br/>.order_by(Order.created_at.desc()).all()
+        DB-->>BE: All orders with customer info (via relationship)
+        BE->>BE: order.to_dict() for each order<br/>includes customer fields from relationship
+        BE-->>FE: JSON {orders: [{<br/>  id, customer_code,<br/>  customer_username,<br/>  customer_full_name,<br/>  total_amount, status,<br/>  payment_status, ...<br/>}]}
+        FE-->>A: Display orders table:<br/>- Mã Hóa Đơn (HD000001)<br/>- Khách Hàng (KH001 - Name)<br/>- Tổng Tiền<br/>- Tình Trạng<br/>- Ngày Lập
+    end
+    
+    %% View Order Details
+    rect rgb(240, 255, 240)
+        Note over A,C: 2. View Order Details
+        A->>FE: Click "View Details" icon
+        FE->>BE: GET /api/orders/:id
+        BE->>DB: Order.query.get(order_id)<br/>with items via relationship
+        DB-->>BE: Order with full details + customer (via relationship)
+        BE->>BE: order.to_dict()<br/>includes customer fields from relationship
+        BE-->>FE: JSON order object with<br/>customer information
+        FE-->>A: Display modal:<br/>- Order items list<br/>- Customer: KH001 - Full Name<br/>- Shipping address<br/>- Status & Payment Status<br/>- Total amount
+        A->>FE: Close modal
+        FE-->>A: Return to orders list
+    end
+    
+    %% Update Order Status
+    rect rgb(255, 250, 240)
+        Note over A,C: 3. Update Order Status
+        A->>FE: Click "Sửa Trạng Thái"
+        FE-->>A: Show status update modal
+        A->>FE: Select new status:<br/>- Pending: Chờ Xác Nhận<br/>- Confirmed: Đã Xác Nhận<br/>- Completed: Hoàn Thành<br/>- Cancelled: Hủy
+        A->>FE: Click "Cập Nhật"
+        FE->>BE: PUT /api/admin/orders/:id<br/>{status: new_status}
+        BE->>BE: Validate status transition
+        BE->>DB: UPDATE orders<br/>SET status = ?, updated_at = NOW()<br/>WHERE id = ?
+        DB-->>BE: Success
+        BE-->>FE: 200 OK + Updated order
+        FE->>FE: Close modal
+        FE-->>A: Toast: "Đã cập nhật trạng thái"
+        FE->>FE: Refresh orders list
+        
+        Note right of C: Customer sees updated status<br/>when they check their orders
+    end
+    
+    %% Update Payment Status
+    rect rgb(255, 240, 245)
+        Note over A,C: 4. Update Payment Status
+        A->>FE: Click "Sửa Trạng Thái" (same modal)
+        FE-->>A: Show modal with payment dropdown
+        A->>FE: Select payment status:<br/>- Pending: Chưa Thanh Toán<br/>- Paid: Đã Thanh Toán
+        A->>FE: Click "Cập Nhật"
+        FE->>BE: PUT /api/admin/orders/:id<br/>{payment_status: new_status}
+        BE->>DB: UPDATE orders<br/>SET payment_status = ?, updated_at = NOW()<br/>WHERE id = ?
+        DB-->>BE: Success
+        BE-->>FE: 200 OK + Updated order
+        FE-->>A: Toast: "Đã cập nhật thanh toán"
+        FE->>FE: Refresh orders list
+        
+        Note right of C: Payment status is managed<br/>independently from order status
+    end
+    
+    %% Filter Orders
+    rect rgb(245, 240, 255)
+        Note over A,C: 5. Filter & Search Orders
+        A->>FE: Enter search query or filter
+        FE->>BE: GET /api/admin/orders?<br/>status=...&date_from=...&customer=...
+        BE->>DB: SELECT with WHERE clauses
+        DB-->>BE: Filtered orders
+        BE-->>FE: JSON filtered results
+        FE-->>A: Display filtered orders
+        
+        A->>FE: Clear filters
+        FE->>BE: GET /api/admin/orders (all)
+        BE->>DB: SELECT all orders
+        DB-->>BE: All orders
+        BE-->>FE: JSON all orders
+        FE-->>A: Display all orders
+    end
+    
+    %% Business Logic Notes
+    rect rgb(255, 245, 230)
+        Note over A,DB: 6. Status Transition Rules
+        Note right of BE: Valid transitions:<br/>- Pending → Confirmed<br/>- Confirmed → Completed<br/>- Any → Cancelled<br/><br/>Payment independent of order status:<br/>- Can be Paid even if Pending<br/>- Can be Pending even if Completed<br/>- COD payment after delivery
+    end
+

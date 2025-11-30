@@ -5,9 +5,11 @@ import type { Book } from '../../types'
 
 interface BookCardProps {
   book: Book
+  compact?: boolean
+  showSold?: boolean
 }
 
-export const BookCard: React.FC<BookCardProps> = ({ book }) => {
+export const BookCard: React.FC<BookCardProps> = ({ book, compact = false, showSold = false }) => {
   const navigate = useNavigate()
 
   // Placeholder image (SVG data URL)
@@ -39,13 +41,18 @@ export const BookCard: React.FC<BookCardProps> = ({ book }) => {
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
         </div>
-        <div className="px-3 py-2 bg-gray-50 border-t border-gray-100 space-y-0.5">
-          <h3 className="font-medium text-gray-900 text-sm text-center line-clamp-2 leading-tight">
+        <div className={`${compact ? 'px-2 py-1.5' : 'px-3 py-2'} bg-gray-50 border-t border-gray-100 space-y-0.5`}>
+          <h3 className={`font-medium text-gray-900 ${compact ? 'text-xs' : 'text-sm'} text-center line-clamp-2 leading-tight`}>
             {book.title}
           </h3>
-          <p className="text-primary font-semibold text-lg text-center">
+          <p className={`text-primary font-semibold ${compact ? 'text-base' : 'text-lg'} text-center`}>
             {formatPrice(book.price)}
           </p>
+          {showSold && book.sold !== undefined && book.sold > 0 && (
+            <p className="text-gray-500 text-xs text-center mt-1">
+              Đã bán {book.sold}
+            </p>
+          )}
         </div>
       </div>
     </div>

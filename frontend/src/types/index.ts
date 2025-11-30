@@ -38,6 +38,7 @@ export interface Book {
   dimensions?: string
   pages?: number
   weight?: number
+  sold?: number
   created_at: string
   updated_at: string
 }

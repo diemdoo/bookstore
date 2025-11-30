@@ -330,7 +330,7 @@ const HomePage: React.FC = () => {
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
               {bestSellers.map((book) => (
-                <BookCard key={book.id} book={book} />
+                <BookCard key={book.id} book={book} showSold />
               ))}
             </div>
           )}
@@ -339,16 +339,10 @@ const HomePage: React.FC = () => {
         {/* Category Sections */}
         {categorySections.map(({ category, books: categoryBooks }) => (
           <div key={category.key} className="mb-12">
-            <div className="bg-primary h-15 flex items-center justify-between px-6 mb-6 rounded-t-lg">
+            <div className="bg-primary h-15 flex items-center px-6 mb-6 rounded-t-lg">
               <h2 className="text-white text-xl font-semibold uppercase">
                 {category.name}
               </h2>
-              <Link 
-                to={`/books?category=${category.key}`}
-                className="text-white hover:text-gray-200 flex items-center gap-1 text-base font-medium"
-              >
-                Xem Thêm <ChevronRight className="h-5 w-5" />
-              </Link>
             </div>
             
             {categoryBooks.length === 0 ? (
@@ -356,11 +350,23 @@ const HomePage: React.FC = () => {
                 Chưa có sách trong danh mục này
               </div>
             ) : (
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
-                {categoryBooks.map((book) => (
-                  <BookCard key={book.id} book={book} />
-                ))}
-              </div>
+              <>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
+                  {categoryBooks.map((book) => (
+                    <BookCard key={book.id} book={book} showSold />
+                  ))}
+                </div>
+                
+                <div className="flex justify-center mt-6">
+                  <Link
+                    to={`/category/${encodeURIComponent(category.key)}`}
+                    className="px-6 py-2 border-2 border-primary text-primary rounded-lg font-semibold hover:bg-primary hover:text-white transition-colors flex items-center gap-2"
+                  >
+                    Xem Thêm
+                    <ChevronRight className="h-4 w-4" />
+                  </Link>
+                </div>
+              </>
             )}
           </div>
         ))}

@@ -1,37 +1,50 @@
 """
-Storage utility để upload ảnh lên Cloudflare R2
+File: utils/storage.py
+
+Mục đích:
+Service để quản lý upload ảnh lên Cloudflare R2 storage
+
+Cấu hình được đọc từ Config class (config.py) thay vì đọc trực tiếp từ environment variables.
+Tất cả R2 configuration được quản lý tập trung trong config.py.
 """
-import os
 import boto3
 from botocore.exceptions import ClientError
 from werkzeug.utils import secure_filename
 import uuid
+from config import Config
 
 class StorageService:
-    """Service để quản lý upload ảnh lên Cloudflare R2
+    """
+    Service để quản lý upload ảnh lên Cloudflare R2
     
-    Tất cả cấu hình được đọc từ environment variables:
-    - R2_ACCOUNT_ID: Cloudflare Account ID
-    - R2_ACCESS_KEY_ID: R2 Access Key ID
-    - R2_SECRET_ACCESS_KEY: R2 Secret Access Key
-    - R2_BUCKET_NAME: R2 Bucket name
-    - R2_PUBLIC_DOMAIN: Custom domain cho public URLs (ví dụ: cdn.duynhne.me)
+    Tất cả cấu hình được đọc từ Config class (config.py):
+    - Config.R2_ACCOUNT_ID: Cloudflare Account ID
+    - Config.R2_ACCESS_KEY_ID: R2 Access Key ID
+    - Config.R2_SECRET_ACCESS_KEY: R2 Secret Access Key
+    - Config.R2_BUCKET_NAME: R2 Bucket name
+    - Config.R2_PUBLIC_DOMAIN: Custom domain cho public URLs (ví dụ: cdn.duyne.me)
     """
     
     def __init__(self):
-        """Khởi tạo R2 client từ environment variables"""
-        # Đọc tất cả cấu hình từ environment variables (không hardcode)
-        self.account_id = os.getenv('R2_ACCOUNT_ID')
-        self.access_key_id = os.getenv('R2_ACCESS_KEY_ID')
-        self.secret_access_key = os.getenv('R2_SECRET_ACCESS_KEY')
-        self.bucket_name = os.getenv('R2_BUCKET_NAME')
-        self.public_domain = os.getenv('R2_PUBLIC_DOMAIN')
+        """
+        Khởi tạo R2 client từ Config
         
-        # Validate required env vars
+        Tất cả cấu hình được đọc từ Config class thay vì đọc trực tiếp từ environment variables.
+        Điều này giúp tập trung quản lý cấu hình ở một nơi (config.py).
+        """
+        # Đọc cấu hình từ Config class (tập trung quản lý ở config.py)
+        self.account_id = Config.R2_ACCOUNT_ID
+        self.access_key_id = Config.R2_ACCESS_KEY_ID
+        self.secret_access_key = Config.R2_SECRET_ACCESS_KEY
+        self.bucket_name = Config.R2_BUCKET_NAME
+        self.public_domain = Config.R2_PUBLIC_DOMAIN
+        
+        # Validate required config values
         if not all([self.account_id, self.access_key_id, self.secret_access_key, self.bucket_name, self.public_domain]):
             raise ValueError(
-                'Missing required R2 environment variables. '
-                'Check R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME, R2_PUBLIC_DOMAIN'
+                'Missing required R2 configuration. '
+                'Please check environment variables: R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, '
+                'R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME, R2_PUBLIC_DOMAIN'
             )
         
         # Build R2 endpoint

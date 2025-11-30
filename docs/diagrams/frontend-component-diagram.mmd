@@ -1,0 +1,146 @@
+graph TB
+    %% Root
+    App[App.tsx<br/>Main Application Entry]
+    
+    %% Routing
+    App --> Router[React Router]
+    Router --> PublicRoutes[Public Routes]
+    Router --> AdminRoutes[Admin Routes<br/>Protected]
+    
+    %% Context Providers
+    App --> AuthProvider[AuthContext Provider<br/>User authentication state]
+    App --> CartProvider[CartContext Provider<br/>Shopping cart state]
+    App --> ToastProvider[ToastContext Provider<br/>Notification system]
+    
+    %% Public Routes
+    PublicRoutes --> PublicLayout[Public Layout]
+    PublicLayout --> PublicHeader[PublicHeader<br/>Logo, Nav, Cart, User Menu]
+    PublicLayout --> PublicFooter[PublicFooter<br/>Company info, Links]
+    
+    PublicRoutes --> HomePage[HomePage<br/>Browse books, 5x3 grid]
+    PublicRoutes --> BookDetailPage[BookDetailPage<br/>Book info, Add to cart]
+    PublicRoutes --> CartPage[CartPage<br/>Manage cart items]
+    PublicRoutes --> CheckoutPage[CheckoutPage<br/>Shipping address, Place order]
+    PublicRoutes --> OrdersPage[OrdersPage<br/>Order history]
+    PublicRoutes --> ProfilePage[ProfilePage<br/>User profile, Edit info]
+    PublicRoutes --> LoginPage[LoginPage<br/>Customer login]
+    PublicRoutes --> RegisterPage[RegisterPage<br/>Customer registration]
+    
+    %% Admin Routes
+    AdminRoutes --> ProtectedRoute[ProtectedRoute<br/>Check role: admin]
+    ProtectedRoute --> AdminLayout[Admin Layout]
+    
+    AdminLayout --> AdminSidebar[AdminSidebar<br/>Navigation menu]
+    AdminLayout --> AdminTopBar[AdminTopBar<br/>User info, Logout]
+    
+    AdminRoutes --> Dashboard[Dashboard<br/>Overview stats]
+    AdminRoutes --> BooksManagement[BooksManagement<br/>CRUD books]
+    AdminRoutes --> CustomerManagement[CustomerManagement<br/>Manage customers]
+    AdminRoutes --> AdminManagement[AdminManagement<br/>Manage admins]
+    AdminRoutes --> OrdersManagement[OrdersManagement<br/>Manage orders, Update status]
+    AdminRoutes --> BannerManagement[BannerManagement<br/>CRUD banners]
+    AdminRoutes --> StatisticsPage[StatisticsPage<br/>Charts, Top books]
+    AdminRoutes --> AdminLoginPage[AdminLoginPage<br/>Admin login]
+    
+    %% Shared UI Components
+    subgraph "UI Components Library"
+        Button[Button<br/>Reusable button]
+        Input[Input<br/>Form input with validation]
+        Table[Table<br/>Data table with actions]
+        Modal[Modal<br/>Dialog popup]
+        Toast[Toast<br/>Notification component]
+        ConfirmDialog[ConfirmDialog<br/>Confirmation modal]
+        StatCard[StatCard<br/>Statistics card]
+        BookCard[BookCard<br/>Book display card]
+    end
+    
+    %% Component Dependencies - Public Pages
+    HomePage --> BookCard
+    HomePage --> Button
+    CartPage --> Table
+    CartPage --> Button
+    CartPage --> ConfirmDialog
+    CheckoutPage --> Input
+    CheckoutPage --> Button
+    OrdersPage --> Table
+    ProfilePage --> Input
+    ProfilePage --> Button
+    LoginPage --> Input
+    LoginPage --> Button
+    RegisterPage --> Input
+    RegisterPage --> Button
+    
+    %% Component Dependencies - Admin Pages
+    Dashboard --> StatCard
+    BooksManagement --> Table
+    BooksManagement --> Modal
+    BooksManagement --> Button
+    BooksManagement --> Input
+    BooksManagement --> ConfirmDialog
+    CustomerManagement --> Table
+    CustomerManagement --> Modal
+    CustomerManagement --> Button
+    CustomerManagement --> ConfirmDialog
+    AdminManagement --> Table
+    AdminManagement --> Modal
+    AdminManagement --> Button
+    AdminManagement --> ConfirmDialog
+    OrdersManagement --> Table
+    OrdersManagement --> Modal
+    OrdersManagement --> Button
+    BannerManagement --> Table
+    BannerManagement --> Modal
+    BannerManagement --> Button
+    BannerManagement --> ConfirmDialog
+    StatisticsPage --> StatCard
+    StatisticsPage --> BookCard
+    
+    %% Context Usage
+    HomePage -.->|useAuth| AuthProvider
+    CartPage -.->|useCart| CartProvider
+    CheckoutPage -.->|useCart, useAuth| CartProvider
+    PublicHeader -.->|useAuth, useCart| AuthProvider
+    LoginPage -.->|useAuth| AuthProvider
+    RegisterPage -.->|useAuth| AuthProvider
+    
+    %% Toast Usage
+    HomePage -.->|useToast| ToastProvider
+    CartPage -.->|useToast| ToastProvider
+    BooksManagement -.->|useToast| ToastProvider
+    OrdersManagement -.->|useToast| ToastProvider
+    
+    %% API Service
+    subgraph "Services"
+        APIService[API Service<br/>Axios wrapper]
+        AuthService[authService<br/>login, register]
+        BookService[booksService<br/>CRUD books]
+        CartService[cartService<br/>Manage cart]
+        OrderService[ordersService<br/>Orders API]
+        AdminService[adminService<br/>Admin operations]
+    end
+    
+    APIService --> AuthService
+    APIService --> BookService
+    APIService --> CartService
+    APIService --> OrderService
+    APIService --> AdminService
+    
+    %% Service Usage
+    HomePage --> BookService
+    CartPage --> CartService
+    CheckoutPage --> OrderService
+    LoginPage --> AuthService
+    RegisterPage --> AuthService
+    BooksManagement --> BookService
+    OrdersManagement --> AdminService
+    
+    %% Styling
+    style App fill:#a5f3fc,stroke:#0891b2,stroke-width:3px
+    style AuthProvider fill:#fef08a,stroke:#ca8a04
+    style CartProvider fill:#fef08a,stroke:#ca8a04
+    style ToastProvider fill:#fef08a,stroke:#ca8a04
+    style PublicLayout fill:#dbeafe,stroke:#3b82f6
+    style AdminLayout fill:#fda4af,stroke:#e11d48
+    style ProtectedRoute fill:#fed7aa,stroke:#ea580c
+    style APIService fill:#c7d2fe,stroke:#6366f1
+

@@ -1,0 +1,47 @@
+%%{init: {'theme':'base', 'themeVariables': { 'primaryColor':'#6366f1'}}}%%
+graph TB
+    Start([Admin User]) --> Login[Admin Login Page]
+    Login --> EnterCreds[Enter Credentials]
+    EnterCreds --> Validate{Valid & Role<br/>is admin?}
+    
+    Validate -->|No| Error[Show Error]
+    Error --> Login
+    
+    Validate -->|Yes| Dashboard[Admin Dashboard]
+    
+    Dashboard --> Menu{Select Module}
+    
+    Menu -->|1| Books[Quản Lý Sách<br/>Books Management]
+    Menu -->|2| Users[Quản Lý Users<br/>Customers & Admins]
+    Menu -->|3| Orders[Quản Lý Đơn Hàng<br/>Orders Management]
+    Menu -->|4| Banners[Quản Lý Banner<br/>Banner Management]
+    Menu -->|5| Statistics[Thống Kê<br/>Statistics Dashboard]
+    Menu -->|6| Logout[Logout]
+    
+    Books --> BooksDetail[See: admin-books-flow.mmd]
+    Users --> UsersDetail[See: admin-users-flow.mmd]
+    Orders --> OrdersDetail[See: admin-orders-flow.mmd]
+    Banners --> BannersDetail[See: admin-banners-flow.mmd]
+    Statistics --> StatsDetail[See: admin-statistics-flow.mmd]
+    
+    BooksDetail --> Dashboard
+    UsersDetail --> Dashboard
+    OrdersDetail --> Dashboard
+    BannersDetail --> Dashboard
+    StatsDetail --> Dashboard
+    
+    Logout --> LogoutAPI[POST logout API]
+    LogoutAPI --> ClearSession[Clear Session]
+    ClearSession --> RedirectLogin[Redirect to Admin Login]
+    RedirectLogin --> End([End])
+    
+    style Start fill:#e1f5e1
+    style End fill:#ffe1e1
+    style Dashboard fill:#f0e1ff
+    style Validate fill:#fff4e1
+    style Books fill:#dbeafe
+    style Users fill:#dbeafe
+    style Orders fill:#dbeafe
+    style Banners fill:#dbeafe
+    style Statistics fill:#dbeafe
+

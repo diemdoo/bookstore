@@ -29,12 +29,16 @@ import StatisticsPage from './pages/admin/StatisticsPage'
 // Auth Components
 import { ProtectedRoute } from './components/auth/ProtectedRoute'
 
+// Shared Components
+import { Chatbot } from './components/shared/Chatbot'
+
 function App() {
   return (
     <ToastProvider>
       <AuthProvider>
         <CartProvider>
           <Router>
+            <Chatbot />
             <Routes>
             {/* Public Routes */}
             <Route path="/" element={<HomePage />} />

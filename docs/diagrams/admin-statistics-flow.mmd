@@ -1,0 +1,59 @@
+%%{init: {'theme':'base', 'themeVariables': { 'primaryColor':'#6366f1'}}}%%
+flowchart TD
+    Start([Statistics Dashboard]) --> LoadStats[GET /api/admin/statistics<br/>Fetch all statistics data]
+    
+    LoadStats --> ProcessData[Process Data:<br/>- Total Revenue<br/>- Total Orders<br/>- Orders by Status<br/>- Top 10 Books]
+    
+    ProcessData --> RenderDashboard[Render Statistics Dashboard]
+    
+    RenderDashboard --> Overview[Overview Cards Section]
+    Overview --> Card1[Card: Total Revenue<br/>Display: ₫XX,XXX,XXX]
+    Overview --> Card2[Card: Total Orders<br/>Display: XXX orders]
+    Overview --> Card3[Card: Pending Orders<br/>Display: XX pending]
+    Overview --> Card4[Card: Confirmed Orders<br/>Display: XX confirmed]
+    Overview --> Card5[Card: Completed Orders<br/>Display: XX completed]
+    Overview --> Card6[Card: Cancelled Orders<br/>Display: XX cancelled]
+    
+    Card1 --> Chart
+    Card2 --> Chart
+    Card3 --> Chart
+    Card4 --> Chart
+    Card5 --> Chart
+    Card6 --> Chart
+    
+    Chart[Orders by Status Chart Section] --> RenderChart[Render Bar/Pie Chart<br/>Status Distribution]
+    
+    RenderChart --> TopBooks[Top 10 Selling Books Section]
+    TopBooks --> RenderGrid[Render 5-Column Grid<br/>with BookCard components]
+    
+    RenderGrid --> BookCards[Display each book:<br/>- Image<br/>- Title<br/>- Author<br/>- Price<br/>- Total Sold]
+    
+    BookCards --> Actions{User Action}
+    
+    Actions -->|Refresh| LoadStats
+    Actions -->|Filter by Date| DateFilter[Select Date Range]
+    DateFilter --> FilterAPI[GET /api/admin/statistics?<br/>start_date=...&end_date=...]
+    FilterAPI --> ProcessData
+    
+    Actions -->|Export Report| Export[Generate PDF/Excel Report]
+    Export --> Download[Download File]
+    Download --> RenderDashboard
+    
+    Actions -->|View Details| ViewDetail[Click on specific metric]
+    ViewDetail --> DetailModal[Show detailed breakdown]
+    DetailModal --> RenderDashboard
+    
+    Actions -->|Back| Back([Return to Dashboard])
+    
+    style Start fill:#e1f5e1
+    style Back fill:#ffe1e1
+    style Overview fill:#dbeafe
+    style Chart fill:#fef3c7
+    style TopBooks fill:#fecaca
+    style Card1 fill:#d1fae5
+    style Card2 fill:#d1fae5
+    style Card3 fill:#fed7aa
+    style Card4 fill:#bfdbfe
+    style Card5 fill:#bbf7d0
+    style Card6 fill:#fecaca
+

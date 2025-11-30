@@ -1,0 +1,61 @@
+flowchart TD
+    Start([Customer Visits Homepage]) --> ViewBook[View Book Detail]
+    ViewBook --> CheckAuth{Logged in?}
+    
+    CheckAuth -->|No| RedirectLogin[Redirect to /login]
+    RedirectLogin --> Login[Customer Logs In]
+    Login --> ViewBook
+    
+    CheckAuth -->|Yes| EnterQty[Enter Quantity]
+    EnterQty --> AddCart[Click Add to Cart]
+    
+    AddCart --> API1[POST /api/cart]
+    API1 --> CheckExisting{Book already<br/>in cart?}
+    
+    CheckExisting -->|Yes| UpdateQty[UPDATE cart<br/>quantity += input]
+    CheckExisting -->|No| InsertNew[INSERT new cart item]
+    
+    UpdateQty --> Success1[Return cart_item]
+    InsertNew --> Success1
+    
+    Success1 --> UpdateContext[Update CartContext<br/>total items count]
+    UpdateContext --> ShowToast[Show Toast:<br/>Đã thêm vào giỏ]
+    
+    ShowToast --> ContinueShopping{Continue<br/>shopping?}
+    ContinueShopping -->|Yes| ViewBook
+    ContinueShopping -->|No| ViewCart[Click Cart Icon]
+    
+    ViewCart --> API2[GET /api/cart]
+    API2 --> FetchItems[Fetch all cart items<br/>with book details]
+    FetchItems --> DisplayCart[Display Cart Page<br/>with items & total]
+    
+    DisplayCart --> CartActions{Action?}
+    
+    CartActions -->|Update Quantity| ChangeQty[Change quantity input]
+    ChangeQty --> API3[PUT /api/cart/:id]
+    API3 --> UpdateDB[UPDATE cart<br/>SET quantity=new_value]
+    UpdateDB --> Recalc[Recalculate Total]
+    Recalc --> DisplayCart
+    
+    CartActions -->|Remove Item| ConfirmRemove{Confirm delete?}
+    ConfirmRemove -->|Yes| API4[DELETE /api/cart/:id]
+    API4 --> DeleteDB[DELETE FROM cart<br/>WHERE id=?]
+    DeleteDB --> UpdateTotal[Update total amount]
+    UpdateTotal --> DisplayCart
+    ConfirmRemove -->|No| DisplayCart
+    
+    CartActions -->|Checkout| ValidateCart{Cart<br/>not empty?}
+    ValidateCart -->|No| ShowEmpty[Show: Cart is empty]
+    ShowEmpty --> End([End])
+    ValidateCart -->|Yes| Checkout[Go to Checkout Page]
+    
+    Checkout --> End
+    
+    style Start fill:#e1f5e1
+    style End fill:#ffe1e1
+    style CheckAuth fill:#fff4e1
+    style CheckExisting fill:#fff4e1
+    style ValidateCart fill:#fff4e1
+    style Success1 fill:#e1f0ff
+    style DisplayCart fill:#f0e1ff
+

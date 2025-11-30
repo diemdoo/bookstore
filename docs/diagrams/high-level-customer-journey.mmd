@@ -1,0 +1,66 @@
+%%{init: {'theme':'base', 'themeVariables': { 'primaryColor':'#6366f1'}}}%%
+flowchart TD
+    Start([Customer]) --> Visit[Visit Bookstore Website]
+    
+    Visit --> Browse[Browse Books<br/>View categories & featured books]
+    Browse --> Search{Find interesting<br/>books?}
+    
+    Search -->|No| Search2[Use search function<br/>or filter by category]
+    Search2 --> Browse
+    
+    Search -->|Yes| ViewDetail[View Book Details<br/>Read description, price, reviews]
+    ViewDetail --> Decide{Want to<br/>purchase?}
+    
+    Decide -->|No| Browse
+    Decide -->|Yes| CheckLogin{Already<br/>logged in?}
+    
+    CheckLogin -->|No| Register[Register or Login<br/>Create account]
+    Register --> AddCart
+    
+    CheckLogin -->|Yes| AddCart[Add Book to Cart<br/>Select quantity]
+    AddCart --> ContinueShopping{Continue<br/>shopping?}
+    
+    ContinueShopping -->|Yes| Browse
+    ContinueShopping -->|No| ViewCart[View Shopping Cart<br/>Review selected items]
+    
+    ViewCart --> ManageCart{Need to<br/>adjust?}
+    ManageCart -->|Yes| Adjust[Update quantity<br/>or remove items]
+    Adjust --> ViewCart
+    
+    ManageCart -->|No| SelectItems[Select items to purchase<br/>using checkboxes]
+    SelectItems --> Checkout[Proceed to Checkout]
+    
+    Checkout --> FillAddress[Fill Shipping Information<br/>Address, phone number]
+    FillAddress --> ReviewOrder[Review Order Details<br/>Items, total amount]
+    ReviewOrder --> ConfirmOrder{Confirm<br/>order?}
+    
+    ConfirmOrder -->|No| ViewCart
+    ConfirmOrder -->|Yes| PlaceOrder[Place Order<br/>Payment: Cash on Delivery]
+    
+    PlaceOrder --> OrderPlaced[Order Successfully Placed<br/>Receive order confirmation]
+    OrderPlaced --> TrackOrder[Track Order Status<br/>Check order history]
+    
+    TrackOrder --> WaitConfirm[Wait for Admin Confirmation<br/>Status: Pending]
+    WaitConfirm --> OrderConfirmed[Order Confirmed by Admin<br/>Status: Confirmed]
+    OrderConfirmed --> Preparing[Admin Prepares Order<br/>Package books]
+    
+    Preparing --> Shipping[Order Shipped<br/>Delivery in progress]
+    Shipping --> Receive[Receive Order<br/>at shipping address]
+    
+    Receive --> Payment[Pay Cash on Delivery<br/>to delivery person]
+    Payment --> Complete[Order Completed<br/>Status: Completed & Paid]
+    
+    Complete --> Feedback{Satisfied<br/>with purchase?}
+    Feedback -->|Yes| Return[Return to shop<br/>for future purchases]
+    Feedback -->|No| Support[Contact customer support]
+    
+    Support --> Return
+    Return --> End([End of Journey])
+    
+    style Start fill:#e1f5e1,stroke:#22c55e,stroke-width:3px
+    style End fill:#ffe1e1,stroke:#ef4444,stroke-width:3px
+    style PlaceOrder fill:#dbeafe,stroke:#3b82f6,stroke-width:2px
+    style OrderPlaced fill:#d1fae5,stroke:#10b981,stroke-width:2px
+    style Complete fill:#d1fae5,stroke:#10b981,stroke-width:2px
+    style Payment fill:#fef3c7,stroke:#f59e0b,stroke-width:2px
+
