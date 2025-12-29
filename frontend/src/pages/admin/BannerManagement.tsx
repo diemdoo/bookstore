@@ -22,6 +22,12 @@ const BannerManagement: React.FC = () => {
     bannerId: null,
     bannerTitle: ''
   })
+  const [toggleConfirm, setToggleConfirm] = useState<{ isOpen: boolean; bannerId: number | null; bannerTitle: string; currentStatus: boolean }>({
+    isOpen: false,
+    bannerId: null,
+    bannerTitle: '',
+    currentStatus: true
+  })
   
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string>('')
@@ -74,12 +80,23 @@ const BannerManagement: React.FC = () => {
     if (banner) {
       setEditingBanner(banner)
       
-      // Detect if link is category-based
-      const categoryMatch = banner.link?.match(/\/books\?category=(.+)/)
-      if (categoryMatch) {
-        const categoryKey = decodeURIComponent(categoryMatch[1])
+      // Detect if link is category-based (support both old format /books?category=... and new format /category/...)
+      const categoryMatchOld = banner.link?.match(/\/books\?category=(.+)/)
+      const categoryMatchNew = banner.link?.match(/\/category\/(.+)/)
+      
+      if (categoryMatchNew) {
+        // New format: /category/slug
+        const categorySlug = categoryMatchNew[1]
         setLinkType('category')
-        setSelectedCategory(categoryKey)
+        setSelectedCategory(categorySlug)
+      } else if (categoryMatchOld) {
+        // Old format: /books?category=key - try to find matching slug
+        const categoryKey = decodeURIComponent(categoryMatchOld[1])
+        const foundCategory = categories.find(c => c.key === categoryKey)
+        if (foundCategory) {
+          setLinkType('category')
+          setSelectedCategory(foundCategory.slug)
+        }
         setFormData({
           title: banner.title,
           description: banner.description || '',
@@ -138,11 +155,6 @@ const BannerManagement: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    // Validate image_url
-    if (!formData.image_url) {
-      toast.error('Vui lòng upload ảnh banner')
-      return
-    }
     
     try {
       if (editingBanner) {
@@ -182,13 +194,28 @@ const BannerManagement: React.FC = () => {
     }
   }
 
-  const handleToggleStatus = async (id: number) => {
+  const handleToggleClick = (banner: Banner) => {
+    setToggleConfirm({
+      isOpen: true,
+      bannerId: banner.id,
+      bannerTitle: banner.title,
+      currentStatus: banner.is_active
+    })
+  }
+
+  const handleToggleConfirm = async () => {
+    if (!toggleConfirm.bannerId) return
+    
     try {
-      await bannersService.toggleBannerStatus(id)
+      await bannersService.toggleBannerStatus(toggleConfirm.bannerId)
+      const action = toggleConfirm.currentStatus ? 'tắt' : 'bật'
+      toast.success(`Đã ${action} banner "${toggleConfirm.bannerTitle}"`)
       fetchBanners(currentPage)
     } catch (error) {
       console.error('Failed to toggle banner status:', error)
       toast.error('Lỗi khi thay đổi trạng thái banner')
+    } finally {
+      setToggleConfirm({ isOpen: false, bannerId: null, bannerTitle: '', currentStatus: true })
     }
   }
 
@@ -234,31 +261,21 @@ const BannerManagement: React.FC = () => {
 
   const columns = [
     {
-      key: 'id',
-      label: 'ID',
-      width: '5%',
+      key: 'banner_code',
+      label: 'Mã Banner',
+      width: '10%',
+      render: (banner: Banner) => banner.banner_code || '-'
     },
-    {
-      key: 'image',
-      label: 'Hình ảnh',
-      width: '15%',
-      render: (banner: Banner) => (
-        <img 
-          src={banner.image_url} 
-          alt={banner.title}
-          className="h-16 w-24 object-cover rounded"
-        />
-      ),
-    },
+  
     {
       key: 'title',
       label: 'Tiêu đề',
-      width: '20%',
+      width: '35%',
     },
     {
       key: 'position',
       label: 'Vị trí',
-      width: '10%',
+      width: '12%',
       render: (banner: Banner) => (
         <span className={`px-2 py-1 rounded text-xs ${
           banner.position === 'main' ? 'bg-blue-100 text-blue-700' :
@@ -273,15 +290,15 @@ const BannerManagement: React.FC = () => {
     {
       key: 'display_order',
       label: 'Thứ tự',
-      width: '8%',
+      width: '10%',
     },
     {
       key: 'is_active',
       label: 'Trạng thái',
-      width: '10%',
+      width: '12%',
       render: (banner: Banner) => (
         <span className={`px-2 py-1 rounded text-xs font-medium ${
-          banner.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+          banner.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-800'
         }`}>
           {banner.is_active ? 'Hoạt động' : 'Tắt'}
         </span>
@@ -290,6 +307,7 @@ const BannerManagement: React.FC = () => {
     {
       key: 'actions',
       label: 'Hành Động',
+      width: '13%',
       render: (banner: Banner) => (
         <div className="flex gap-2">
           <button
@@ -300,8 +318,8 @@ const BannerManagement: React.FC = () => {
             <Edit2 size={18} />
           </button>
           <button
-            onClick={() => handleToggleStatus(banner.id)}
-            className="text-green-600 hover:text-green-800"
+            onClick={() => handleToggleClick(banner)}
+            className={banner.is_active ? 'text-green-600 hover:text-green-800' : 'text-red-600 hover:text-red-800'}
             title={banner.is_active ? 'Tắt' : 'Bật'}
           >
             {banner.is_active ? <ToggleLeft size={18} /> : <ToggleRight size={18} />}
@@ -380,48 +398,6 @@ const BannerManagement: React.FC = () => {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Ảnh Banner <span className="text-red-500">*</span>
-            </label>
-            
-            {/* Image Preview */}
-            {(imagePreview || formData.image_url) && (
-              <div className="mb-3">
-                <img
-                  src={imagePreview || formData.image_url}
-                  alt="Preview"
-                  className="w-full max-w-md h-48 object-cover rounded border border-gray-300"
-                />
-              </div>
-            )}
-            
-            {/* File Input */}
-            <div className="flex gap-2 mb-2">
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleFileSelect}
-                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-white hover:file:bg-primary-dark cursor-pointer"
-              />
-              <Button
-                type="button"
-                onClick={handleUploadImage}
-                disabled={!selectedFile || uploading}
-                variant="outline"
-              >
-                {uploading ? 'Đang upload...' : 'Upload'}
-              </Button>
-            </div>
-            
-            {/* Current URL (readonly, shown after upload) */}
-            {formData.image_url && (
-              <div className="text-xs text-gray-500 mt-1 break-all">
-                URL: {formData.image_url}
-              </div>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
               Loại Link
             </label>
             <div className="flex gap-4 mb-3">
@@ -464,10 +440,10 @@ const BannerManagement: React.FC = () => {
                 <select
                   value={selectedCategory}
                   onChange={(e) => {
-                    const categoryKey = e.target.value
-                    setSelectedCategory(categoryKey)
-                    if (categoryKey) {
-                      setFormData({ ...formData, link: `/books?category=${encodeURIComponent(categoryKey)}` })
+                    const categorySlug = e.target.value
+                    setSelectedCategory(categorySlug)
+                    if (categorySlug) {
+                      setFormData({ ...formData, link: `/category/${categorySlug}` })
                     } else {
                       setFormData({ ...formData, link: '' })
                     }
@@ -476,7 +452,7 @@ const BannerManagement: React.FC = () => {
                 >
                   <option value="">-- Chọn category --</option>
                   {categories.map((category) => (
-                    <option key={category.id} value={category.key}>
+                    <option key={category.id} value={category.slug}>
                       {category.name}
                     </option>
                   ))}
@@ -583,6 +559,18 @@ const BannerManagement: React.FC = () => {
         confirmText="Xóa"
         cancelText="Hủy"
         variant="danger"
+      />
+
+      {/* Toggle Status Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={toggleConfirm.isOpen}
+        title="Xác Nhận Thay Đổi"
+        message={`Bạn có chắc chắn muốn ${toggleConfirm.currentStatus ? 'tắt' : 'bật'} banner "${toggleConfirm.bannerTitle}"?`}
+        onConfirm={handleToggleConfirm}
+        onCancel={() => setToggleConfirm({ isOpen: false, bannerId: null, bannerTitle: '', currentStatus: true })}
+        confirmText={toggleConfirm.currentStatus ? 'Tắt' : 'Bật'}
+        cancelText="Hủy"
+        variant={toggleConfirm.currentStatus ? 'danger' : 'primary'}
       />
     </AdminLayout>
   )

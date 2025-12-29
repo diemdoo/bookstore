@@ -21,18 +21,40 @@ const CategoryManagement: React.FC = () => {
     categoryName: ''
   })
   
-  // Form state
+  // Helper function to generate slug from Vietnamese text
+  const generateSlug = (text: string): string => {
+    return text
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
+      .replace(/[^\w\s-]/g, '') // Remove special characters
+      .replace(/[-\s]+/g, '-') // Replace spaces and multiple dashes with single dash
+      .trim()
+      .replace(/^-+|-+$/g, '') // Remove leading/trailing dashes
+  }
+
+  // Form state (không cần key và slug trong form, backend tự generate)
   const [formData, setFormData] = useState<Partial<Category>>({
-    key: '',
     name: '',
     description: '',
     display_order: 0,
     is_active: true
   })
+  
+  // Preview slug (readonly, chỉ để hiển thị)
+  const [previewSlug, setPreviewSlug] = useState('')
 
   useEffect(() => {
     fetchCategories()
   }, [])
+
+  // Update preview slug when name changes (only for new categories)
+  useEffect(() => {
+    if (formData.name && !editingCategory) {
+      // Only preview for new categories
+      setPreviewSlug(generateSlug(formData.name))
+    }
+  }, [formData.name, editingCategory])
 
   const fetchCategories = async () => {
     try {
@@ -50,21 +72,21 @@ const CategoryManagement: React.FC = () => {
     if (category) {
       setEditingCategory(category)
       setFormData({
-        key: category.key,
         name: category.name,
         description: category.description || '',
         display_order: category.display_order || 0,
         is_active: category.is_active ?? true
       })
+      setPreviewSlug(category.slug)
     } else {
       setEditingCategory(null)
       setFormData({
-        key: '',
         name: '',
         description: '',
         display_order: 0,
         is_active: true
       })
+      setPreviewSlug('')
     }
     setIsModalOpen(true)
   }
@@ -73,23 +95,31 @@ const CategoryManagement: React.FC = () => {
     setIsModalOpen(false)
     setEditingCategory(null)
     setFormData({
-      key: '',
       name: '',
       description: '',
       display_order: 0,
       is_active: true
     })
+    setPreviewSlug('')
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
+    // Chỉ gửi các field cần thiết, không gửi key và slug (backend tự generate)
+    const submitData = {
+      name: formData.name,
+      description: formData.description,
+      display_order: formData.display_order,
+      is_active: formData.is_active
+    }
+    
     try {
       if (editingCategory) {
-        await categoriesService.updateCategory(editingCategory.id!, formData)
+        await categoriesService.updateCategory(editingCategory.id!, submitData)
         success('Cập nhật danh mục thành công')
       } else {
-        await categoriesService.createCategory(formData)
+        await categoriesService.createCategory(submitData)
         success('Thêm danh mục thành công')
       }
       
@@ -123,14 +153,20 @@ const CategoryManagement: React.FC = () => {
   }
 
   const columns = [
-    { key: 'id', label: 'ID' },
-    { key: 'key', label: 'Key' },
-    { key: 'name', label: 'Tên Danh Mục' },
-    { key: 'description', label: 'Mô Tả' },
-    { key: 'display_order', label: 'Thứ Tự' },
+    { 
+      key: 'category_code', 
+      label: 'Mã DM',
+      width: '10%',
+      render: (item: Category) => item.category_code || '-'
+    },
+    { key: 'name', label: 'Tên Danh Mục', width: '22%' },
+    { key: 'slug', label: 'Slug (URL)', width: '18%' },
+    { key: 'description', label: 'Mô Tả', width: '19%' },
+    { key: 'display_order', label: 'Thứ Tự', width: '8%' },
     { 
       key: 'is_active', 
       label: 'Trạng Thái',
+      width: '12%',
       render: (item: Category) => (
         <span className={`px-2 py-1 rounded text-xs ${item.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
           {item.is_active ? 'Hoạt động' : 'Tắt'}
@@ -140,6 +176,7 @@ const CategoryManagement: React.FC = () => {
     {
       key: 'actions',
       label: 'Hành Động',
+      width: '13%',
       render: (item: Category) => (
         <div className="flex gap-2">
           <button
@@ -190,21 +227,59 @@ const CategoryManagement: React.FC = () => {
 
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <Input
-                label="Key"
-                value={formData.key}
-                onChange={(e) => setFormData({ ...formData, key: e.target.value })}
-                required
-                placeholder="e.g., Sach_Tieng_Viet"
-                disabled={!!editingCategory} // Key cannot be changed after creation
-              />
-
-              <Input
                 label="Tên Danh Mục"
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={(e) => {
+                  const newName = e.target.value
+                  setFormData({ ...formData, name: newName })
+                  // Auto-generate preview slug (readonly, chỉ để hiển thị)
+                  setPreviewSlug(generateSlug(newName))
+                }}
                 required
                 placeholder="e.g., Sách Tiếng Việt"
               />
+
+              {/* Slug preview (readonly) - Giống BooksManagement */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Slug (URL) <span className="text-gray-400 text-xs font-normal">(tự động tạo)</span>
+                </label>
+                <input
+                  type="text"
+                  value={previewSlug || editingCategory?.slug || ''}
+                  readOnly
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-600 cursor-not-allowed"
+                  placeholder="sẽ được tự động tạo từ tên danh mục"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  {editingCategory
+                    ? (formData.name !== editingCategory.name
+                        ? 'Slug sẽ cập nhật khi lưu (vì tên danh mục thay đổi)'
+                        : 'Slug hiện tại của danh mục')
+                    : 'Slug sẽ tự động tạo khi lưu danh mục'}
+                </p>
+              </div>
+
+              {/* Slug preview (readonly) */}
+              {(previewSlug || editingCategory) && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Slug (URL) <span className="text-gray-400 text-xs">(tự động tạo)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={previewSlug || editingCategory?.slug || ''}
+                    readOnly
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-600 cursor-not-allowed"
+                    placeholder="sẽ được tự động tạo từ tên danh mục"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    {editingCategory 
+                      ? 'Slug sẽ được tự động cập nhật nếu tên danh mục thay đổi'
+                      : 'Slug sẽ được tự động tạo và đảm bảo unique'}
+                  </p>
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">

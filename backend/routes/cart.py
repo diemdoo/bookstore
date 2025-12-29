@@ -87,7 +87,16 @@ def add_to_cart():
         # Bước 2: Lấy dữ liệu từ request
         data = request.get_json()
         book_id = data.get('book_id')
-        quantity = data.get('quantity', 1)
+        # Handle None case: if quantity is None or missing, default to 1
+        quantity = data.get('quantity')
+        if quantity is None:
+            quantity = 1
+        else:
+            # Convert to int if it's a string or ensure it's an integer
+            try:
+                quantity = int(quantity)
+            except (ValueError, TypeError):
+                return jsonify({'error': 'Số lượng phải là số nguyên hợp lệ'}), 400
         
         # Bước 3: Validate dữ liệu
         if not book_id:

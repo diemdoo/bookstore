@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { useToast } from '../../components/ui/Toast'
@@ -10,9 +10,16 @@ const AdminLoginPage: React.FC = () => {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
-  const { login } = useAuth()
+  const { adminLogin, user, loading: authLoading } = useAuth()
   const navigate = useNavigate()
   const toast = useToast()
+
+  // Redirect customer users away from admin login
+  useEffect(() => {
+    if (!authLoading && user && user.role === 'customer') {
+      navigate('/')
+    }
+  }, [user, authLoading, navigate])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -24,7 +31,7 @@ const AdminLoginPage: React.FC = () => {
 
     setLoading(true)
     try {
-      await login(username, password)
+      await adminLogin(username, password)
       toast.success('Đăng nhập thành công!')
       navigate('/admin')
     } catch (error) {

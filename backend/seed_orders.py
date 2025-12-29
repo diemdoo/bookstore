@@ -4,6 +4,7 @@ Script to seed orders for testing
 from models import db, User, Book, Order, OrderItem
 from datetime import datetime, timedelta
 from decimal import Decimal
+import random
 
 def seed_orders(force_reseed=False):
     """Seed orders for testing
@@ -11,45 +12,58 @@ def seed_orders(force_reseed=False):
     Args:
         force_reseed: If True, delete existing orders before seeding
     """
-    print("🌱 Starting order seeding...")
+    print("Starting order seeding...")
     
-    # Get user1 and user2
-    user1 = User.query.filter_by(username='user1').first()
-    user2 = User.query.filter_by(username='user2').first()
+    # Get all customers (wrap in try-except in case column doesn't exist yet)
+    try:
+        customers = User.query.filter_by(role='customer', is_active=True).all()
+    except Exception as e:
+        # If column doesn't exist yet, users don't exist either
+        if 'customer_code' in str(e) or 'does not exist' in str(e):
+            print("Error: Database schema not fully migrated. Please ensure customer_code column exists.")
+            return False
+        else:
+            raise
     
-    if not user1 or not user2:
-        print("❌ Error: user1 or user2 not found. Please run seed_data.py first.")
+    if len(customers) < 2:
+        print(f"Error: Not enough customers found ({len(customers)}). Need at least 2. Please run seed_data.py first.")
         return False
+    
+    print(f"✓ Found {len(customers)} customers")
     
     # Check if orders already exist
     existing_orders = Order.query.first()
     if existing_orders:
         if force_reseed:
-            print("🔄 Deleting existing orders...")
+            print("Deleting existing orders...")
             OrderItem.query.delete()
             Order.query.delete()
             db.session.commit()
-            print("✓ Deleted existing orders")
+            print("Deleted existing orders")
         else:
-            print("✓ Orders already exist, skipping order seeding")
+            print("Orders already exist, skipping order seeding")
             return True
     
     # Get books from multiple categories for diverse order data
     # Lấy books từ nhiều categories để có dữ liệu đa dạng
     books = []
-    categories = ['Sach Tieng Viet', 'Truyen Tranh', 'Do Trang Tri', 'Van Phong Pham']
+    categories = ['SACH_TIENG_VIET', 'TRUYEN_TRANH', 'DO_TRANG_TRI', 'VAN_PHONG_PHAM']
     
     for category in categories:
         category_books = Book.query.filter_by(category=category).limit(5).all()
         books.extend(category_books)
         if category_books:
-            print(f"✓ Found {len(category_books)} books from {category}")
+            print(f"Found {len(category_books)} books from {category}")
     
     if len(books) < 10:
-        print(f"❌ Error: Not enough books found ({len(books)}). Need at least 10.")
+        print(f"Error: Not enough books found ({len(books)}). Need at least 10.")
         return False
     
-    print(f"✓ Total: {len(books)} books from multiple categories")
+    print(f"Total: {len(books)} books from multiple categories")
+    
+    # Use first 2 customers for initial orders (backward compatibility)
+    user1 = customers[0]
+    user2 = customers[1] if len(customers) > 1 else customers[0]
     
     # Create orders with different statuses for user1
     # Order 1: Pending order (recent) - 2 books
@@ -238,18 +252,105 @@ def seed_orders(force_reseed=False):
         db.session.add(OrderItem(order_id=order11.id, book_id=books[3].id, quantity=4, price=books[3].price))
         db.session.add(OrderItem(order_id=order11.id, book_id=books[4].id, quantity=4, price=books[4].price))
     
+    # Generate additional 39 orders (total 50 orders) distributed across all customers
+    statuses = ['pending', 'confirmed', 'completed', 'cancelled']
+    payment_statuses = ['pending', 'paid']
+    districts = ['Quận 1', 'Quận 2', 'Quận 3', 'Quận 5', 'Quận 7', 'Quận 10', 'Quận 11', 'Quận Bình Thạnh', 'Quận Tân Bình', 'Quận Phú Nhuận', 'Quận Gò Vấp']
+    
+    orders_created = 11  # Already created 11 orders above
+    
+    for i in range(orders_created, 50):
+        # Randomly select a customer
+        customer = random.choice(customers)
+        
+        # Randomly select 1-3 books
+        num_books = random.randint(1, min(3, len(books)))
+        selected_books = random.sample(books, num_books)
+        
+        # Calculate total amount
+        total_amount = Decimal('0')
+        order_items_data = []
+        for book in selected_books:
+            quantity = random.randint(1, 5)
+            item_total = Decimal(str(book.price)) * quantity
+            total_amount += item_total
+            order_items_data.append({
+                'book_id': book.id,
+                'quantity': quantity,
+                'price': book.price
+            })
+        
+        # Random status (weighted towards completed for realistic data)
+        if random.random() < 0.5:  # 50% completed
+            status = 'completed'
+            payment_status = 'paid'
+        elif random.random() < 0.7:  # 20% confirmed
+            status = 'confirmed'
+            payment_status = random.choice(payment_statuses)
+        elif random.random() < 0.9:  # 20% pending
+            status = 'pending'
+            payment_status = 'pending'
+        else:  # 10% cancelled
+            status = 'cancelled'
+            payment_status = 'pending'
+        
+        # Random date within last 30 days
+        days_ago = random.randint(0, 30)
+        hours_ago = random.randint(0, 23)
+        created_at = datetime.utcnow() - timedelta(days=days_ago, hours=hours_ago)
+        
+        # Random address
+        district = random.choice(districts)
+        street_num = random.randint(1, 999)
+        shipping_address = f'{street_num} Đường {random.choice(["ABC", "DEF", "GHI", "JKL", "MNO", "PQR", "STU", "VWX", "YZA"])}, Phường {random.choice(["XYZ", "UVW", "RST", "MNO", "KLM", "HIJ", "EFG", "CDE"])}, {district}, TP. Hồ Chí Minh'
+        
+        # Create order
+        order = Order(
+            user_id=customer.id,
+            total_amount=total_amount,
+            status=status,
+            payment_status=payment_status,
+            shipping_address=shipping_address,
+            created_at=created_at
+        )
+        
+        if status != 'pending':
+            # Set updated_at for non-pending orders
+            order.updated_at = created_at + timedelta(hours=random.randint(1, 24))
+        
+        db.session.add(order)
+        db.session.flush()
+        
+        # Create order items
+        for item_data in order_items_data:
+            db.session.add(OrderItem(
+                order_id=order.id,
+                book_id=item_data['book_id'],
+                quantity=item_data['quantity'],
+                price=item_data['price']
+            ))
+    
     # Commit all orders
     try:
         db.session.commit()
-        print("✅ Orders seeded successfully!")
-        print("   - User1: 6 orders (1 pending, 1 confirmed, 3 completed, 1 cancelled)")
-        print("   - User2: 5 orders (2 pending, 1 confirmed, 2 completed)")
+        total_orders = Order.query.count()
+        pending_count = Order.query.filter_by(status='pending').count()
+        confirmed_count = Order.query.filter_by(status='confirmed').count()
+        completed_count = Order.query.filter_by(status='completed').count()
+        cancelled_count = Order.query.filter_by(status='cancelled').count()
+        
+        print("Orders seeded successfully!")
+        print(f"   - Total orders: {total_orders}")
+        print(f"   - Pending: {pending_count}")
+        print(f"   - Confirmed: {confirmed_count}")
+        print(f"   - Completed: {completed_count}")
+        print(f"   - Cancelled: {cancelled_count}")
+        print(f"   - Distributed across {len(customers)} customers")
         print("   - Books from multiple categories: Sach Tieng Viet, Truyen Tranh, Do Trang Tri, Van Phong Pham")
-        print("   - Sold counts: books[0]=5, books[1]=5, books[2]=10, books[3]=4, books[4]=10, books[5]=10, books[6]=2, books[7]=3, books[8]=5, books[9]=15")
         return True
     except Exception as e:
         db.session.rollback()
-        print(f"❌ Error seeding orders: {e}")
+        print(f"Error seeding orders: {e}")
         raise
 
 # For standalone execution

@@ -4,7 +4,7 @@ export interface User {
   username: string
   email: string
   full_name: string
-  role: 'admin' | 'customer'
+  role: 'admin' | 'moderator' | 'editor' | 'customer'
   is_active: boolean
   customer_code?: string
   created_at: string
@@ -25,7 +25,9 @@ export interface RegisterRequest {
 // Book Types
 export interface Book {
   id: number
+  book_code: string
   title: string
+  slug: string
   author: string
   category: string
   description: string
@@ -141,6 +143,7 @@ export interface PaginatedResponse<T> {
 // Banner Types
 export interface Banner {
   id: number
+  banner_code?: string
   title: string
   description?: string
   image_url: string
@@ -169,8 +172,10 @@ export interface BannerFormData {
 // Category Types
 export interface Category {
   id?: number
+  category_code?: string
   key: string
   name: string
+  slug: string
   description?: string
   display_order?: number
   is_active?: boolean
@@ -184,6 +189,7 @@ export interface AuthContextType {
   loading: boolean
   setUser: (user: User | null) => void
   login: (username: string, password: string) => Promise<User>
+  adminLogin: (username: string, password: string) => Promise<User>
   register: (data: RegisterRequest) => Promise<void>
   logout: () => Promise<void>
   checkAuth: () => Promise<void>

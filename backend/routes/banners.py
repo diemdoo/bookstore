@@ -19,7 +19,7 @@ Dependencies:
 """
 from flask import Blueprint, request, jsonify
 from models import Banner, db
-from utils.helpers import admin_required
+from utils.helpers import admin_required, generate_banner_code
 
 banners_bp = Blueprint('banners', __name__)
 
@@ -140,17 +140,21 @@ def create_banner():
     data = request.get_json()
     
     # Bước 2: Validate các trường bắt buộc
-    required_fields = ['title', 'image_url']
+    required_fields = ['title']
     for field in required_fields:
         if field not in data:
             return jsonify({'error': f'Thiếu trường {field}'}), 400
     
     try:
+        # Generate banner_code
+        banner_code = generate_banner_code(Banner)
+        
         # Bước 3: Tạo Banner mới
         banner = Banner(
+            banner_code=banner_code,
             title=data['title'],
             description=data.get('description'),
-            image_url=data['image_url'],
+            image_url=data.get('image_url', ''),
             link=data.get('link'),
             bg_color=data.get('bg_color', '#6366f1'),
             text_color=data.get('text_color', '#ffffff'),

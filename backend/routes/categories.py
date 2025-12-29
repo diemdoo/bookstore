@@ -6,9 +6,9 @@ Xử lý các route liên quan đến quản lý categories và sách theo categ
 
 Các endpoint trong file này:
 - GET /api/categories: Lấy danh sách categories (public)
-- GET /api/categories/<id>: Lấy chi tiết category
-- GET /api/categories/<key>/books: Lấy danh sách sách theo category
-- GET /api/categories/<key>/books/<id>: Lấy chi tiết sách theo category
+- GET /api/categories/<id>: Lấy chi tiết category theo ID
+- GET /api/categories/<slug>/books: Lấy danh sách sách theo category slug (có sorting)
+- GET /api/categories/<slug>/books/<book_slug>: Lấy chi tiết sách theo category slug và book slug
 - POST /api/admin/categories: Tạo category mới (admin)
 - PUT /api/admin/categories/<id>: Cập nhật category (admin)
 - DELETE /api/admin/categories/<id>: Xóa category (admin)
@@ -16,12 +16,11 @@ Các endpoint trong file này:
 Dependencies:
 - models.Category: Model cho bảng categories
 - models.Book: Model cho bảng books
-- utils.helpers: admin_required decorator
+- utils.helpers: admin_required decorator, generate_slug, generate_unique_slug, generate_category_key, generate_unique_category_key, generate_category_code
 """
 from flask import Blueprint, request, jsonify
 from models import Category, Book, db
-from utils.helpers import admin_required
-import urllib.parse
+from utils.helpers import admin_required, generate_slug, generate_unique_slug, generate_category_key, generate_unique_category_key, generate_category_code
 
 categories_bp = Blueprint('categories', __name__)
 
@@ -92,86 +91,122 @@ def get_category(category_id):
     except Exception as e:
         return jsonify({'error': f'Lỗi lấy chi tiết category: {str(e)}'}), 500
 
-@categories_bp.route('/categories/<category_key>/books', methods=['GET'])
-def get_category_books(category_key):
+@categories_bp.route('/categories/<slug>/books', methods=['GET'])
+def get_category_books(slug):
     """
-    Lấy danh sách sách theo category key (RESTful endpoint)
+    Lấy danh sách sách theo category slug (RESTful endpoint)
     
     Flow:
-    1. Decode URL-encoded category key
-    2. Lấy query parameters (page, per_page)
-    3. Query books theo category với pagination
-    4. Trả về danh sách sách với pagination info
+    1. Tìm category theo slug
+    2. Kiểm tra category có tồn tại không
+    3. Lấy query parameters (page, per_page, sort_by)
+    4. Query books theo category key với sorting
+    5. Áp dụng pagination
+    6. Trả về danh sách sách với pagination info
     
     Query Parameters:
     - page (int): Số trang (default: 1)
     - per_page (int): Số items mỗi trang (default: 12)
+    - sort_by (str): Sắp xếp (newest|price_asc|price_desc|bestseller, default: newest)
     
     Returns:
         - 200: Danh sách sách với pagination
+        - 404: Category không tồn tại
         - 500: Lỗi server
     """
     try:
-        # Bước 1: Decode URL-encoded category key
-        category_key = urllib.parse.unquote(category_key)
+        # Bước 1-2: Tìm category theo slug
+        category = Category.query.filter_by(slug=slug).first()
+        if not category:
+            return jsonify({'error': 'Category không tồn tại'}), 404
         
-        # Bước 2: Lấy query parameters
+        # Bước 3: Lấy query parameters
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 12, type=int)
+        sort_by = request.args.get('sort_by', 'newest', type=str)
         
-        # Bước 3: Query books theo category với pagination
-        query = Book.query.filter_by(category=category_key)
+        # Bước 4: Query books theo category key
+        query = Book.query.filter_by(category=category.key)
+        
+        # Áp dụng sorting dựa vào sort_by parameter
+        if sort_by == 'price_asc':
+            query = query.order_by(Book.price.asc())
+        elif sort_by == 'price_desc':
+            query = query.order_by(Book.price.desc())
+        elif sort_by == 'bestseller':
+            # Sort by sold count using subquery
+            from models import OrderItem, Order
+            from sqlalchemy import func, desc
+            
+            sold_subquery = (
+                db.session.query(
+                    OrderItem.book_id,
+                    func.sum(OrderItem.quantity).label('total_sold')
+                )
+                .join(Order)
+                .filter(Order.status == 'completed')
+                .group_by(OrderItem.book_id)
+                .subquery()
+            )
+            
+            query = query.outerjoin(sold_subquery, Book.id == sold_subquery.c.book_id)
+            query = query.order_by(desc(func.coalesce(sold_subquery.c.total_sold, 0)))
+        else:  # newest (default)
+            query = query.order_by(Book.created_at.desc())
+        
+        # Bước 5: Áp dụng pagination
         pagination = query.paginate(page=page, per_page=per_page, error_out=False)
         
-        # Bước 4: Trả về danh sách sách
+        # Bước 6: Trả về danh sách sách
         return jsonify({
             'books': [book.to_dict() for book in pagination.items],
             'total': pagination.total,
             'page': page,
             'per_page': per_page,
             'pages': pagination.pages,
-            'category_key': category_key
+            'category_slug': category.slug,
+            'category_key': category.key,
+            'category_name': category.name
         }), 200
         
     except Exception as e:
         return jsonify({'error': f'Lỗi lấy danh sách sách theo category: {str(e)}'}), 500
 
-@categories_bp.route('/categories/<category_key>/books/<int:book_id>', methods=['GET'])
-def get_category_book(category_key, book_id):
+@categories_bp.route('/categories/<slug>/books/<book_slug>', methods=['GET'])
+def get_category_book(slug, book_slug):
     """
-    Lấy chi tiết sách theo category key và book id (RESTful endpoint)
+    Lấy chi tiết sách theo category slug và book slug (RESTful endpoint)
     
     Flow:
-    1. Decode URL-encoded category key
-    2. Query book theo book_id
-    3. Kiểm tra book có tồn tại không
-    4. Kiểm tra book có thuộc category đúng không
-    5. Trả về thông tin sách
+    1. Tìm category theo slug
+    2. Kiểm tra category có tồn tại không
+    3. Query book theo book_slug và category key
+    4. Kiểm tra book có tồn tại không
+    5. Kiểm tra book có thuộc category đúng không
+    6. Trả về thông tin sách
     
     Returns:
         - 200: Chi tiết sách
-        - 404: Sách không tồn tại hoặc không thuộc category này
+        - 404: Category không tồn tại, sách không tồn tại hoặc không thuộc category này
         - 500: Lỗi server
     """
     try:
-        # Bước 1: Decode URL-encoded category key
-        category_key = urllib.parse.unquote(category_key)
+        # Bước 1-2: Tìm category theo slug
+        category = Category.query.filter_by(slug=slug).first()
+        if not category:
+            return jsonify({'error': 'Category không tồn tại'}), 404
         
-        # Bước 2: Query book
-        book = Book.query.get(book_id)
-        
-        # Bước 3: Kiểm tra book có tồn tại không
+        # Bước 3-4: Query book theo book_slug và category key
+        book = Book.query.filter_by(slug=book_slug, category=category.key).first()
         if not book:
-            return jsonify({'error': 'Sách không tồn tại'}), 404
+            return jsonify({'error': 'Sách không tồn tại hoặc không thuộc category này'}), 404
         
-        # Bước 4: Kiểm tra book có thuộc category đúng không
-        if book.category != category_key:
-            return jsonify({'error': 'Sách không thuộc category này'}), 404
-        
-        # Bước 5: Trả về thông tin sách
+        # Bước 5-6: Trả về thông tin sách
         return jsonify({
             'book': book.to_dict(),
-            'category_key': category_key
+            'category_slug': category.slug,
+            'category_key': category.key,
+            'category_name': category.name
         }), 200
         
     except Exception as e:
@@ -185,14 +220,15 @@ def create_category():
     
     Flow:
     1. Lấy dữ liệu từ request body
-    2. Validate các trường bắt buộc (key, name)
-    3. Kiểm tra key đã tồn tại chưa
-    4. Tạo category mới trong database
-    5. Trả về thông tin category đã tạo
+    2. Validate các trường bắt buộc (name)
+    3. Tự động generate key và slug từ name
+    4. Đảm bảo slug unique (auto-append số nếu trùng)
+    5. Tạo category mới trong database
+    6. Trả về thông tin category đã tạo
     
     Returns:
         - 201: Tạo category thành công
-        - 400: Dữ liệu không hợp lệ hoặc key đã tồn tại
+        - 400: Dữ liệu không hợp lệ
         - 500: Lỗi server
     """
     try:
@@ -200,19 +236,46 @@ def create_category():
         data = request.get_json()
         
         # Bước 2: Validate các trường bắt buộc
-        if not data.get('key'):
-            return jsonify({'error': 'Key là bắt buộc'}), 400
         if not data.get('name'):
-            return jsonify({'error': 'Name là bắt buộc'}), 400
+            return jsonify({'error': 'Tên danh mục là bắt buộc'}), 400
         
-        # Bước 3: Kiểm tra key đã tồn tại chưa
-        if Category.query.filter_by(key=data['key']).first():
-            return jsonify({'error': f"Key '{data['key']}' đã tồn tại"}), 400
+        name = data['name'].strip()
+        
+        # Bước 3: Tự động generate key và slug từ name
+        # =====================================================================
+        # Generate key tự động (VD: "Sách Thiếu Nhi" -> "SACH_THIEU_NHI")
+        base_key = generate_category_key(name)
+        
+        # Kiểm tra: Nếu key rỗng (tên chỉ chứa ký tự đặc biệt), trả về lỗi
+        if not base_key:
+            return jsonify({
+                'error': 'Không thể tạo key từ tên danh mục. Vui lòng sử dụng tên có ký tự chữ cái hoặc số.'
+            }), 400
+        
+        # Đảm bảo key là duy nhất trong database (thêm suffix nếu trùng)
+        key = generate_unique_category_key(base_key, Category)
+        
+        # Generate slug tự động (VD: "Sách Thiếu Nhi" -> "sach-thieu-nhi")
+        base_slug = generate_slug(name)
+        
+        # Kiểm tra: Nếu slug rỗng (tên chỉ chứa ký tự đặc biệt), trả về lỗi
+        if not base_slug:
+            return jsonify({
+                'error': 'Không thể tạo slug từ tên danh mục. Vui lòng sử dụng tên có ký tự chữ cái hoặc số.'
+            }), 400
+        
+        # Đảm bảo slug là duy nhất trong database (thêm suffix nếu trùng)
+        slug = generate_unique_slug(base_slug, Category)
+        
+        # Generate category_code
+        category_code = generate_category_code(Category)
         
         # Bước 4: Tạo category mới
         new_category = Category(
-            key=data['key'].strip(),
-            name=data['name'].strip(),
+            category_code=category_code,
+            key=key,
+            name=name,
+            slug=slug,
             description=data.get('description', '').strip() if data.get('description') else None,
             display_order=data.get('display_order', 0),
             is_active=data.get('is_active', True)
@@ -240,14 +303,15 @@ def update_category(category_id):
     1. Lấy category_id từ URL
     2. Kiểm tra category có tồn tại không
     3. Lấy dữ liệu từ request body
-    4. Validate key (nếu có) chưa được sử dụng bởi category khác
-    5. Cập nhật các trường được gửi lên
-    6. Lưu vào database
-    7. Trả về thông tin category đã cập nhật
+    4. Validate name nếu có
+    5. Tự động regenerate key và slug nếu name thay đổi
+    6. Cập nhật các trường được gửi lên
+    7. Lưu vào database
+    8. Trả về thông tin category đã cập nhật
     
     Returns:
         - 200: Cập nhật thành công
-        - 400: Dữ liệu không hợp lệ hoặc key đã tồn tại
+        - 400: Dữ liệu không hợp lệ
         - 404: Category không tồn tại
         - 500: Lỗi server
     """
@@ -260,16 +324,24 @@ def update_category(category_id):
         # Bước 3: Lấy dữ liệu từ request
         data = request.get_json()
         
-        # Bước 4: Validate key nếu có thay đổi
-        if 'key' in data and data['key'] != category.key:
-            if Category.query.filter_by(key=data['key']).first():
-                return jsonify({'error': f"Key '{data['key']}' đã tồn tại"}), 400
-        
-        # Bước 5: Cập nhật các trường
-        if 'key' in data:
-            category.key = data['key'].strip()
+        # Bước 4-5: Validate và regenerate key/slug nếu name thay đổi
         if 'name' in data:
-            category.name = data['name'].strip()
+            new_name = data['name'].strip()
+            if not new_name:
+                return jsonify({'error': 'Tên danh mục không được để trống'}), 400
+            
+            # Chỉ regenerate nếu name thực sự thay đổi
+            if new_name != category.name:
+                category.name = new_name
+                
+                # Tự động regenerate key nếu name thay đổi
+                base_key = generate_category_key(new_name)
+                category.key = generate_unique_category_key(base_key, Category, exclude_id=category.id)
+                
+                # Tự động regenerate slug nếu name thay đổi
+                base_slug = generate_slug(new_name)
+                category.slug = generate_unique_slug(base_slug, Category, exclude_id=category.id)
+        
         if 'description' in data:
             category.description = data['description'].strip() if data['description'] else None
         if 'display_order' in data:

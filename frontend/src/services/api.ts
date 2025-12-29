@@ -59,6 +59,16 @@ export const authService = {
     }
   },
 
+  async adminLogin(data: LoginRequest): Promise<User> {
+    try {
+      const response = await api.post('/admin/login', data)
+      return response.data.user
+    } catch (error) {
+      handleError(error as AxiosError)
+      throw error
+    }
+  },
+
   async register(data: RegisterRequest): Promise<User> {
     try {
       const response = await api.post('/register', data)
@@ -116,6 +126,15 @@ export const booksService = {
     }
   },
 
+  async getBook(id: number): Promise<{ book: Book }> {
+    try {
+      const response = await api.get(`/books/${id}`)
+      return response.data
+    } catch (error) {
+      handleError(error as AxiosError)
+      throw error
+    }
+  },
 
   async createBook(data: BookFormData): Promise<Book> {
     try {
@@ -263,10 +282,50 @@ export const ordersService = {
 
 // Admin Service
 export const adminService = {
-  async getUsers(): Promise<User[]> {
+  async getUsers(
+    role?: 'customer' | 'admin' | 'moderator' | 'editor',
+    page?: number,
+    per_page?: number
+  ): Promise<{ users: User[], total: number, page: number, per_page: number, pages: number }> {
     try {
-      const response = await api.get('/admin/users')
-      return response.data.users
+      const params: any = {}
+      if (role) params.role = role
+      if (page) params.page = page
+      if (per_page) params.per_page = per_page
+      
+      const response = await api.get('/admin/users', { params })
+      return response.data
+    } catch (error) {
+      handleError(error as AxiosError)
+      throw error
+    }
+  },
+
+  async createAdminUser(data: {
+    username: string
+    email: string
+    password: string
+    full_name: string
+    role: 'admin' | 'moderator' | 'editor'
+  }): Promise<User> {
+    try {
+      const response = await api.post('/admin/users', data)
+      return response.data.user
+    } catch (error) {
+      handleError(error as AxiosError)
+      throw error
+    }
+  },
+
+  async updateUser(id: number, data: {
+    email: string
+    full_name: string
+    role: 'admin' | 'moderator' | 'editor'
+    password?: string
+  }): Promise<User> {
+    try {
+      const response = await api.put(`/admin/users/${id}`, data)
+      return response.data.user
     } catch (error) {
       handleError(error as AxiosError)
       throw error
@@ -283,14 +342,24 @@ export const adminService = {
     }
   },
 
-  async getAllOrders(): Promise<Order[]> {
+  async getAllOrders(
+    page?: number,
+    per_page?: number
+  ): Promise<{ orders: Order[], total: number, page: number, per_page: number, pages: number }> {
     try {
-      const response = await api.get('/admin/orders')
+      const params: any = {}
+      if (page) params.page = page
+      if (per_page) params.per_page = per_page
+      
+      const response = await api.get('/admin/orders', { params })
       // Transform order_items to items for frontend compatibility
-      return response.data.orders.map((order: any) => ({
-        ...order,
-        items: order.order_items || order.items || []
-      }))
+      return {
+        ...response.data,
+        orders: response.data.orders.map((order: any) => ({
+          ...order,
+          items: order.order_items || order.items || []
+        }))
+      }
     } catch (error) {
       handleError(error as AxiosError)
       throw error
@@ -475,18 +544,17 @@ export const categoriesService = {
     }
   },
 
-  // Public: Get books by category key (RESTful endpoint)
+  // Public: Get books by category slug (RESTful endpoint)
   getCategoryBooks: async (
-    categoryKey: string,
+    slug: string,
     params?: {
       page?: number
       per_page?: number
+      sort_by?: string
     }
-  ): Promise<PaginatedResponse<Book> & { category_key: string }> => {
+  ): Promise<PaginatedResponse<Book> & { category_slug: string; category_key: string; category_name: string }> => {
     try {
-      // URL encode category key
-      const encodedKey = encodeURIComponent(categoryKey)
-      const response = await api.get(`/categories/${encodedKey}/books`, { params })
+      const response = await api.get(`/categories/${slug}/books`, { params })
       return response.data
     } catch (error) {
       handleError(error as AxiosError)
@@ -494,15 +562,13 @@ export const categoriesService = {
     }
   },
 
-  // Public: Get book by category key and book id (RESTful endpoint)
+  // Public: Get book by category slug and book slug (RESTful endpoint)
   getCategoryBook: async (
-    categoryKey: string,
-    bookId: number
-  ): Promise<{ book: Book; category_key: string }> => {
+    categorySlug: string,
+    bookSlug: string
+  ): Promise<{ book: Book; category_slug: string; category_key: string; category_name: string }> => {
     try {
-      // URL encode category key
-      const encodedKey = encodeURIComponent(categoryKey)
-      const response = await api.get(`/categories/${encodedKey}/books/${bookId}`)
+      const response = await api.get(`/categories/${categorySlug}/books/${bookSlug}`)
       return response.data
     } catch (error) {
       handleError(error as AxiosError)

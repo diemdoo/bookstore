@@ -26,8 +26,8 @@ export function Table<T extends { id?: number | string }>({
   keyExtractor,
 }: TableProps<T>) {
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200">
+    <div className="overflow-x-auto w-full">
+      <table className="w-full divide-y divide-gray-200" style={{ tableLayout: 'fixed', width: '100%' }}>
         <thead className="bg-gray-50">
           <tr>
             {columns.map((column) => (
@@ -40,7 +40,7 @@ export function Table<T extends { id?: number | string }>({
               </th>
             ))}
             {actions && (
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ width: '10%' }}>
                 Actions
               </th>
             )}
@@ -67,14 +67,18 @@ export function Table<T extends { id?: number | string }>({
                 onClick={() => onRowClick?.(item)}
               >
                 {columns.map((column) => (
-                  <td key={column.key} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td 
+                    key={column.key} 
+                    className="px-6 py-4 text-sm text-gray-900 overflow-hidden"
+                    style={{ width: column.width }}
+                  >
                     {column.render
                       ? column.render(item)
-                      : (item as any)[column.key]}
+                      : <div className="truncate">{(item as any)[column.key]}</div>}
                   </td>
                 ))}
                 {actions && (
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium" style={{ width: '10%' }}>
                     {actions(item)}
                   </td>
                 )}

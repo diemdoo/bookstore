@@ -56,8 +56,9 @@ def register():
         if not validate_email(email):
             return jsonify({'error': 'Email không hợp lệ'}), 400
         
-        if not validate_password(password):
-            return jsonify({'error': 'Mật khẩu phải có ít nhất 6 ký tự'}), 400
+        password_valid, password_error = validate_password(password)
+        if not password_valid:
+            return jsonify({'error': password_error}), 400
         
         # Bước 3: Kiểm tra username và email đã tồn tại chưa
         if User.query.filter_by(username=username).first():
@@ -100,21 +101,22 @@ def register():
 @auth_bp.route('/login', methods=['POST'])
 def login():
     """
-    Đăng nhập vào hệ thống
+    Đăng nhập vào hệ thống (chỉ cho phép customer, không cho phép admin)
     
     Flow:
     1. Nhận username và password từ request
     2. Validate dữ liệu (không được để trống)
     3. Tìm user trong database theo username
-    4. Kiểm tra password có khớp không
-    5. Kiểm tra tài khoản có bị khóa không (is_active)
-    6. Tạo session để lưu thông tin đăng nhập
-    7. Trả về thông tin user
+    4. Kiểm tra user có phải admin không (nếu là admin thì từ chối)
+    5. Kiểm tra password có khớp không
+    6. Kiểm tra tài khoản có bị khóa không (is_active)
+    7. Tạo session để lưu thông tin đăng nhập
+    8. Trả về thông tin user
     
     Returns:
         - 200: Đăng nhập thành công
         - 400: Thiếu thông tin
-        - 401: Username/password không đúng hoặc tài khoản bị khóa
+        - 401: Username/password không đúng, là admin, hoặc tài khoản bị khóa
         - 500: Lỗi server
     """
     try:
@@ -130,20 +132,24 @@ def login():
         # Bước 3: Tìm user trong database
         user = User.query.filter_by(username=username).first()
         
-        # Bước 4: Kiểm tra password
+        # Bước 4: Kiểm tra user có phải admin không (nếu là admin thì từ chối)
+        if user and user.role == 'admin':
+            return jsonify({'error': 'Tài khoản admin phải đăng nhập qua /admin/login'}), 401
+        
+        # Bước 5: Kiểm tra password
         if not user or not check_password(password, user.password_hash):
             return jsonify({'error': 'Username hoặc password không đúng'}), 401
         
-        # Bước 5: Kiểm tra tài khoản có bị khóa không
+        # Bước 6: Kiểm tra tài khoản có bị khóa không
         if not user.is_active:
             return jsonify({'error': 'Tài khoản đã bị khóa'}), 401
         
-        # Bước 6: Tạo session để lưu thông tin đăng nhập
+        # Bước 7: Tạo session để lưu thông tin đăng nhập
         session['user_id'] = user.id
         session['username'] = user.username
         session['user_role'] = user.role
         
-        # Bước 7: Trả về thông tin user
+        # Bước 8: Trả về thông tin user
         return jsonify({
             'message': 'Đăng nhập thành công',
             'user': user.to_dict()

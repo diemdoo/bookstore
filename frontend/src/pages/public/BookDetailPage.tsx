@@ -8,7 +8,7 @@ import { booksService, categoriesService } from '../../services/api'
 import { useAuth } from '../../contexts/AuthContext'
 import { useCart } from '../../contexts/CartContext'
 import { useToast } from '../../components/ui/Toast'
-import { Minus, Plus, ShoppingCart, CreditCard, Building2, User, Package } from 'lucide-react'
+import { Minus, Plus, ShoppingCart, CreditCard } from 'lucide-react'
 import { formatPrice } from '../../utils/formatters'
 import type { Book, Category } from '../../types'
 
@@ -16,7 +16,7 @@ import type { Book, Category } from '../../types'
 const PLACEHOLDER_IMAGE = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iI2U1ZTdlYiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTgiIGZpbGw9IiM5Y2EzYWYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5ObyBJbWFnZTwvdGV4dD48L3N2Zz4='
 
 const BookDetailPage: React.FC = () => {
-  const { categoryKey, id } = useParams<{ categoryKey: string; id: string }>()
+  const { slug: categorySlug, bookSlug } = useParams<{ slug: string; bookSlug: string }>()
   const [book, setBook] = useState<Book | null>(null)
   const [category, setCategory] = useState<Category | null>(null)
   const [quantity, setQuantity] = useState(1)
@@ -28,20 +28,46 @@ const BookDetailPage: React.FC = () => {
 
   useEffect(() => {
     const fetchBook = async () => {
-      if (!id || !categoryKey) return
+      if (!bookSlug) return
+      
       try {
-        // Decode category key from URL
-        const decodedCategoryKey = decodeURIComponent(categoryKey)
-        
-        // Fetch book using new category-based endpoint
-        const data = await categoriesService.getCategoryBook(decodedCategoryKey, Number(id))
-        setBook(data.book)
-        
-        // Fetch category info
-        if (data.category_key) {
-          const categoriesData = await categoriesService.getCategories()
-          const foundCategory = categoriesData.categories.find(c => c.key === data.category_key)
-          setCategory(foundCategory || null)
+        if (categorySlug) {
+          // Preferred: Fetch book using category slug and book slug endpoint (keeps category context)
+          const data = await categoriesService.getCategoryBook(categorySlug, bookSlug)
+          setBook(data.book)
+          
+          // Set category from API response
+          if (data.category_slug && data.category_name) {
+            setCategory({
+              id: 0,
+              key: data.category_key,
+              name: data.category_name,
+              slug: data.category_slug,
+              is_active: true
+            } as Category)
+          }
+        } else {
+          // Fallback: Get all books and find by slug (less efficient but works)
+          console.log('Fetching book without category context, using fallback method')
+          const booksData = await booksService.getBooks({ per_page: 1000 }) // Get all books
+          const foundBook = booksData.books.find(b => b.slug === bookSlug)
+          
+          if (foundBook) {
+            setBook(foundBook)
+            
+            // Try to get category info
+            try {
+              const categoriesData = await categoriesService.getCategories()
+              const foundCategory = categoriesData.categories.find(c => c.key === foundBook.category)
+              if (foundCategory) {
+                setCategory(foundCategory)
+              }
+            } catch (catError) {
+              console.error('Failed to fetch category:', catError)
+            }
+          } else {
+            console.error('Book not found with slug:', bookSlug)
+          }
         }
       } catch (error) {
         console.error('Failed to fetch book:', error)
@@ -51,7 +77,7 @@ const BookDetailPage: React.FC = () => {
     }
 
     fetchBook()
-  }, [id, categoryKey])
+  }, [bookSlug, categorySlug])
 
   const handleAddToCart = async () => {
     if (!user) {
@@ -99,7 +125,7 @@ const BookDetailPage: React.FC = () => {
 
   const breadcrumbItems = [
     { label: 'Trang chủ', href: '/' },
-    ...(category && categoryKey ? [{ label: category.name, href: `/category/${encodeURIComponent(categoryKey)}` }] : []),
+    ...(category && categorySlug ? [{ label: category.name, href: `/category/${categorySlug}` }] : []),
     { label: book.title }
   ]
 
@@ -127,42 +153,38 @@ const BookDetailPage: React.FC = () => {
             </div>
 
             {/* Book Info */}
-            <div className="space-y-6">
+            <div className="space-y-4">
               <div>
-                <h1 className="text-4xl font-bold text-gray-900 leading-tight mb-4">{book.title}</h1>
+                <h1 className="text-2xl font-bold text-gray-900 leading-snug mb-3">{book.title}</h1>
                 
-                <div className="space-y-3 text-gray-600">
-                  <div className="flex items-center gap-2">
-                    <Building2 className="h-4 w-4 text-gray-400" />
-                    <p>
-                      <span className="font-medium">Nhà Xuất Bản:</span>{' '}
-                      <span className="text-primary font-semibold">{book.publisher || 'N/A'}</span>
-                    </p>
+                <div className="space-y-1 text-sm text-gray-600">
+                  <div>
+                    <span className="font-medium text-gray-900">Tác giả:</span> {book.author}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <User className="h-4 w-4 text-gray-400" />
-                    <p>
-                      <span className="font-medium">Tác Giả:</span>{' '}
-                      <span className="text-primary font-semibold">{book.author}</span>
-                    </p>
-                  </div>
+                  {book.publisher && (
+                    <div>
+                      <span className="font-medium text-gray-900">NXB:</span> {book.publisher}
+                    </div>
+                  )}
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-gray-200">
-                <div className="text-3xl font-bold text-primary mb-4">
+              <div className="pt-3 border-t border-gray-200">
+                <div className="text-3xl font-bold text-primary mb-1">
                   {formatPrice(book.price)}
                 </div>
-
+                {book.sold !== undefined && book.sold > 0 && (
+                  <div className="text-sm text-gray-500 mb-1">
+                    Đã bán {book.sold}
+                  </div>
+                )}
                 <div>
                   {book.stock > 0 ? (
-                    <span className="inline-flex items-center gap-2 px-4 py-2 bg-green-50 text-green-700 rounded-lg text-sm font-semibold border border-green-200 shadow-sm">
-                      <Package className="h-4 w-4" />
+                    <span className="inline-flex px-3 py-1.5 bg-green-50 text-green-700 rounded-lg text-xs font-semibold border border-green-200">
                       Còn hàng
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-2 px-4 py-2 bg-red-50 text-red-700 rounded-lg text-sm font-semibold border border-red-200 shadow-sm">
-                      <Package className="h-4 w-4" />
+                    <span className="inline-flex px-3 py-1.5 bg-red-50 text-red-700 rounded-lg text-xs font-semibold border border-red-200">
                       Hết hàng
                     </span>
                   )}
@@ -170,13 +192,13 @@ const BookDetailPage: React.FC = () => {
               </div>
 
               {user && book.stock > 0 && (
-                <div className="space-y-4 pt-2">
+                <div className="space-y-3 pt-2">
                   <div className="flex items-center gap-3">
-                    <span className="text-sm font-medium text-gray-700">Số lượng:</span>
+                    <span className="text-xs font-medium text-gray-600">Số lượng:</span>
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                        className="w-8 h-8 rounded border border-gray-300 flex items-center justify-center hover:bg-gray-50 hover:border-gray-400 transition-all active:scale-95"
+                        className="w-7 h-7 rounded border border-gray-300 flex items-center justify-center hover:bg-gray-50 hover:border-gray-400 transition-all active:scale-95"
                       >
                         <Minus className="h-4 w-4" />
                       </button>
@@ -184,11 +206,11 @@ const BookDetailPage: React.FC = () => {
                         type="number"
                         value={quantity}
                         onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                        className="w-16 h-8 text-center border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                        className="w-16 h-7 text-center border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                       />
                       <button
                         onClick={() => setQuantity(Math.min(book.stock, quantity + 1))}
-                        className="w-8 h-8 rounded border border-gray-300 flex items-center justify-center hover:bg-gray-50 hover:border-gray-400 transition-all active:scale-95"
+                        className="w-7 h-7 rounded border border-gray-300 flex items-center justify-center hover:bg-gray-50 hover:border-gray-400 transition-all active:scale-95"
                       >
                         <Plus className="h-4 w-4" />
                       </button>
@@ -196,11 +218,11 @@ const BookDetailPage: React.FC = () => {
                   </div>
 
                   <div className="flex gap-2">
-                    <Button onClick={handleBuyNow} className="flex-1 h-10 text-sm font-semibold shadow-sm hover:shadow-md transition-shadow">
+                    <Button onClick={handleBuyNow} className="flex-1 h-9 text-sm font-semibold shadow-sm hover:shadow-md transition-shadow">
                       <CreditCard className="h-4 w-4 mr-2" />
                       Mua Ngay
                     </Button>
-                    <Button onClick={handleAddToCart} variant="outline" className="flex-1 h-10 text-sm font-semibold border-2 hover:bg-gray-50 transition-colors">
+                    <Button onClick={handleAddToCart} variant="outline" className="flex-1 h-9 text-sm font-semibold border-2 hover:bg-gray-50 transition-colors">
                       <ShoppingCart className="h-4 w-4 mr-2" />
                       Thêm Giỏ Hàng
                     </Button>
