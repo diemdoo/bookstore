@@ -6,20 +6,21 @@ Xử lý các route liên quan đến quản lý sách (CRUD, tìm kiếm, lọc
 
 Các endpoint trong file này:
 - GET /api/books: Lấy danh sách sách (có pagination, search, filter)
-- POST /api/books: Tạo sách mới (admin only)
-- PUT /api/books/<id>: Cập nhật thông tin sách (admin only)
-- DELETE /api/books/<id>: Xóa sách (admin only)
+- GET /api/books/<id>: Lấy chi tiết sách theo ID
+- POST /api/books: Tạo sách mới (admin)
+- PUT /api/books/<id>: Cập nhật thông tin sách (admin)
+- DELETE /api/books/<id>: Xóa sách (admin)
 - GET /api/books/bestsellers: Lấy danh sách sách bán chạy nhất
 
 Dependencies:
 - models.Book: Model cho bảng books
 - models.OrderItem: Model cho bảng order_items (để tính bestsellers)
-- utils.helpers: admin_required decorator
+- utils.helpers: admin_required decorator, generate_slug, generate_unique_book_slug, generate_book_code
 - sqlalchemy: Để query và aggregate
 """
 from flask import Blueprint, request, jsonify
 from models import Book, OrderItem, db
-from utils.helpers import admin_required
+from utils.helpers import admin_required, generate_slug, generate_unique_book_slug, generate_book_code
 from sqlalchemy import func, desc
 
 books_bp = Blueprint('books', __name__)
@@ -87,7 +88,36 @@ def get_books():
     except Exception as e:
         return jsonify({'error': f'Lỗi lấy danh sách sách: {str(e)}'}), 500
 
-# Note: GET /books/<int:book_id> đã được chuyển sang /categories/<category_key>/books/<book_id>
+@books_bp.route('/books/<int:book_id>', methods=['GET'])
+def get_book(book_id):
+    """
+    Lấy chi tiết sách theo ID
+    
+    Flow:
+    1. Query book theo book_id
+    2. Kiểm tra book có tồn tại không
+    3. Trả về thông tin sách
+    
+    Returns:
+        - 200: Chi tiết sách
+        - 404: Sách không tồn tại
+        - 500: Lỗi server
+    """
+    try:
+        # Bước 1: Query book
+        book = Book.query.get(book_id)
+        
+        # Bước 2: Kiểm tra book có tồn tại không
+        if not book:
+            return jsonify({'error': 'Sách không tồn tại'}), 404
+        
+        # Bước 3: Trả về thông tin sách
+        return jsonify({
+            'book': book.to_dict()
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': f'Lỗi lấy chi tiết sách: {str(e)}'}), 500
 
 @books_bp.route('/books', methods=['POST'])
 @admin_required
@@ -112,9 +142,16 @@ def create_book():
         data = request.get_json()
         
         # Bước 2: Validate các trường bắt buộc
-        required_fields = ['title', 'author', 'category', 'price', 'stock']
-        for field in required_fields:
+        # String fields: check existence and truthiness
+        string_fields = ['title', 'author', 'category']
+        for field in string_fields:
             if field not in data or not data[field]:
+                return jsonify({'error': f'Thiếu trường {field}'}), 400
+        
+        # Numeric fields: only check existence (0 is a valid value)
+        numeric_fields = ['price', 'stock']
+        for field in numeric_fields:
+            if field not in data:
                 return jsonify({'error': f'Thiếu trường {field}'}), 400
         
         # Validate title
@@ -149,9 +186,20 @@ def create_book():
         except (ValueError, TypeError):
             return jsonify({'error': 'Số lượng tồn kho không hợp lệ'}), 400
         
+        # Generate slug from title
+        base_slug = generate_slug(title)
+        if not base_slug:
+            return jsonify({'error': 'Không thể tạo slug từ tiêu đề sách'}), 400
+        slug = generate_unique_book_slug(base_slug, Book)
+        
+        # Generate book_code
+        book_code = generate_book_code(Book)
+        
         # Bước 4: Tạo Book mới
         new_book = Book(
+            book_code=book_code,
             title=title,
+            slug=slug,
             author=author,
             category=category,
             description=data.get('description', '').strip() if data.get('description') else None,
@@ -215,6 +263,10 @@ def update_book(book_id):
                 return jsonify({'error': 'Tiêu đề sách không được vượt quá 200 ký tự'}), 400
             if title:
                 book.title = title
+                # Regenerate slug if title changed
+                base_slug = generate_slug(title)
+                if base_slug:
+                    book.slug = generate_unique_book_slug(base_slug, Book, exclude_id=book.id)
         
         if 'author' in data:
             author = data['author'].strip()

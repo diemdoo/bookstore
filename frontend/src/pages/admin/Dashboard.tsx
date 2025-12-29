@@ -3,12 +3,20 @@ import { AdminLayout } from '../../components/layout/AdminLayout'
 import { StatCard } from '../../components/shared/StatCard'
 import { adminService } from '../../services/api'
 import type { Statistics } from '../../types'
+import { useAuth } from '../../contexts/AuthContext'
 
 const Dashboard: React.FC = () => {
+  const { user: currentUser } = useAuth()
   const [stats, setStats] = useState<Statistics | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    // Editor không có quyền xem thống kê
+    if (currentUser?.role === 'editor') {
+      setLoading(false)
+      return
+    }
+
     const fetchStatistics = async () => {
       try {
         const data = await adminService.getStatistics()
@@ -21,7 +29,35 @@ const Dashboard: React.FC = () => {
     }
 
     fetchStatistics()
-  }, [])
+  }, [currentUser])
+
+  // Editor không có quyền xem thống kê
+  if (currentUser?.role === 'editor') {
+    return (
+      <AdminLayout title="Trang Chủ">
+        <div className="bg-white rounded-lg shadow p-8">
+          <h2 className="text-2xl font-semibold text-gray-900 mb-4">Chào mừng, {currentUser.full_name || currentUser.username}!</h2>
+          <p className="text-gray-600 mb-6">
+            Bạn có quyền quản lý các module sau:
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h3 className="font-semibold text-blue-900 mb-2">📚 Quản Lý Sách</h3>
+              <p className="text-sm text-blue-700">Thêm, sửa, xóa sách</p>
+            </div>
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <h3 className="font-semibold text-green-900 mb-2">📁 Quản Lý Danh Mục</h3>
+              <p className="text-sm text-green-700">Quản lý danh mục sách</p>
+            </div>
+            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+              <h3 className="font-semibold text-purple-900 mb-2">🖼️ Quản Lý Banner</h3>
+              <p className="text-sm text-purple-700">Quản lý banner quảng cáo</p>
+            </div>
+          </div>
+        </div>
+      </AdminLayout>
+    )
+  }
 
   if (loading) {
     return (

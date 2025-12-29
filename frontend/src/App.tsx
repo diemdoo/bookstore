@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import { CartProvider } from './contexts/CartContext'
 import { ToastProvider } from './components/ui/Toast'
@@ -28,9 +28,18 @@ import StatisticsPage from './pages/admin/StatisticsPage'
 
 // Auth Components
 import { ProtectedRoute } from './components/auth/ProtectedRoute'
+import { CustomerRoute } from './components/auth/CustomerRoute'
 
 // Shared Components
 import { Chatbot } from './components/shared/Chatbot'
+
+// Component to conditionally render Chatbot
+const ConditionalChatbot = () => {
+  const location = useLocation()
+  const isAdminPage = location.pathname.startsWith('/admin')
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/register'
+  return !isAdminPage && !isAuthPage ? <Chatbot /> : null
+}
 
 function App() {
   return (
@@ -38,15 +47,16 @@ function App() {
       <AuthProvider>
         <CartProvider>
           <Router>
-            <Chatbot />
+            <ConditionalChatbot />
             <Routes>
             {/* Public Routes */}
             <Route path="/" element={<HomePage />} />
             <Route path="/books" element={<BooksPage />} />
-            <Route path="/category/:categoryKey" element={<CategoryPage />} />
-            <Route path="/category/:categoryKey/books/:id" element={<BookDetailPage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/category/:slug" element={<CategoryPage />} />
+            <Route path="/category/:slug/books/:bookSlug" element={<BookDetailPage />} />
+            <Route path="/books/:bookSlug" element={<BookDetailPage />} />
+            <Route path="/login" element={<CustomerRoute><LoginPage /></CustomerRoute>} />
+            <Route path="/register" element={<CustomerRoute><RegisterPage /></CustomerRoute>} />
             <Route path="/cart" element={<CartPage />} />
             <Route path="/checkout" element={<CheckoutPage />} />
             <Route path="/orders" element={<OrdersPage />} />

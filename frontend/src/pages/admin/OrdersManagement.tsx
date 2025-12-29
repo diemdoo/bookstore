@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { AdminLayout } from '../../components/layout/AdminLayout'
 import { Button } from '../../components/ui/Button'
-import { Table } from '../../components/ui/Table'
+import { Table, Pagination } from '../../components/ui/Table'
 import { adminService } from '../../services/api'
 import { useToast } from '../../components/ui/Toast'
 import { getStatusText, getStatusBadge } from '../../utils/formatters'
@@ -13,17 +13,21 @@ const OrdersManagement: React.FC = () => {
   const [loading, setLoading] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingOrder, setEditingOrder] = useState<Order | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
   const [formData, setFormData] = useState({
     status: 'pending',
     payment_status: 'pending'
   })
   const toast = useToast()
 
-  const fetchOrders = async () => {
+  const fetchOrders = async (page: number = 1) => {
     try {
       setLoading(true)
-      const data = await adminService.getAllOrders()
-      setOrders(data)
+      const data = await adminService.getAllOrders(page, 20)
+      setOrders(data.orders)
+      setCurrentPage(data.page)
+      setTotalPages(data.pages)
     } catch (error) {
       console.error('Failed to fetch orders:', error)
     } finally {
@@ -32,8 +36,8 @@ const OrdersManagement: React.FC = () => {
   }
 
   useEffect(() => {
-    fetchOrders()
-  }, [])
+    fetchOrders(currentPage)
+  }, [currentPage])
 
   const handleEdit = (order: Order) => {
     setEditingOrder(order)
@@ -82,11 +86,13 @@ const OrdersManagement: React.FC = () => {
     {
       key: 'invoice_code',
       label: 'Mã Hóa Đơn',
+      width: '12%',
       render: (order: Order) => `HD${order.id.toString().padStart(6, '0')}`,
     },
     {
       key: 'customer',
       label: 'Khách Hàng',
+      width: '32%',
       render: (order: Order) => {
         if (order.customer_code) {
           return `${order.customer_code} - ${order.customer_full_name || order.customer_username || `User ${order.user_id}`}`
@@ -97,11 +103,13 @@ const OrdersManagement: React.FC = () => {
     {
       key: 'total_amount',
       label: 'Tổng Tiền',
+      width: '12%',
       render: (order: Order) => `${order.total_amount.toLocaleString('vi-VN')} đ`,
     },
     {
       key: 'created_at',
       label: 'Ngày Lập',
+      width: '18%',
       render: (order: Order) => new Date(order.created_at).toLocaleDateString('vi-VN', {
         year: 'numeric',
         month: '2-digit',
@@ -113,11 +121,13 @@ const OrdersManagement: React.FC = () => {
     {
       key: 'status',
       label: 'Tình Trạng',
+      width: '16%',
       render: (order: Order) => renderStatusBadge(order.status),
     },
     {
       key: 'actions',
       label: 'Hành Động',
+      width: '10%',
       render: (order: Order) => (
         <div className="flex gap-2">
           <button
@@ -137,7 +147,18 @@ const OrdersManagement: React.FC = () => {
       {loading ? (
         <div className="text-center py-8">Đang tải...</div>
       ) : (
-        <Table columns={columns} data={orders} />
+        <>
+          <Table columns={columns} data={orders} />
+          {totalPages > 1 && (
+            <div className="mt-4">
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+              />
+            </div>
+          )}
+        </>
       )}
 
       {/* Edit Status Modal */}

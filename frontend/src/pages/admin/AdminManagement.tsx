@@ -4,16 +4,18 @@ import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
 import { Table, Pagination } from '../../components/ui/Table'
-import { adminService, authService } from '../../services/api'
-import { Plus, Edit2, Trash2, X } from 'lucide-react'
+import { adminService } from '../../services/api'
+import { Plus, Edit2, ToggleLeft, ToggleRight, X } from 'lucide-react'
 import type { User } from '../../types'
 import { useToast } from '../../components/ui/Toast'
+import { useAuth } from '../../contexts/AuthContext'
 
 interface AdminFormData {
   username: string
   password: string
   email: string
   full_name: string
+  role: 'admin' | 'moderator' | 'editor'
 }
 
 const AdminManagement: React.FC = () => {
@@ -22,6 +24,12 @@ const AdminManagement: React.FC = () => {
     isOpen: false,
     userId: null,
     userName: ''
+  })
+  const [toggleConfirm, setToggleConfirm] = useState<{ isOpen: boolean; userId: number | null; userName: string; currentStatus: boolean }>({
+    isOpen: false,
+    userId: null,
+    userName: '',
+    currentStatus: true
   })
   const [loading, setLoading] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -34,14 +42,30 @@ const AdminManagement: React.FC = () => {
     password: '',
     email: '',
     full_name: '',
+    role: 'moderator',
   })
   const toast = useToast()
+  const { user: currentUser } = useAuth()
+
+  // Check if user is moderator or editor (not allowed to manage admins)
+  if (currentUser?.role === 'moderator' || currentUser?.role === 'editor') {
+    return (
+      <AdminLayout title="Quản Lý Quản Trị Viên">
+        <div className="bg-white rounded-lg shadow p-8 text-center">
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Không có quyền truy cập</h2>
+          <p className="text-gray-600">Chỉ Super Admin mới có quyền quản lý quản trị viên.</p>
+        </div>
+      </AdminLayout>
+    )
+  }
 
   const fetchUsers = async () => {
     try {
       setLoading(true)
       const data = await adminService.getUsers()
-      const adminUsers = data.filter(u => u.role === 'admin')
+      // getUsers() without role parameter returns admin/moderator/editor users
+      // Data is now paginated response: { users, total, page, per_page, pages }
+      const adminUsers = data.users || []
       setUsers(adminUsers)
       setTotalPages(Math.ceil(adminUsers.length / itemsPerPage))
     } catch (error) {
@@ -68,6 +92,7 @@ const AdminManagement: React.FC = () => {
         password: '', // Don't show password
         email: user.email,
         full_name: user.full_name || '',
+        role: (user.role === 'admin' || user.role === 'moderator') ? user.role : 'moderator',
       })
     } else {
       setEditingUser(null)
@@ -76,6 +101,7 @@ const AdminManagement: React.FC = () => {
         password: '',
         email: '',
         full_name: '',
+        role: 'moderator',
       })
     }
     setIsModalOpen(true)
@@ -92,18 +118,35 @@ const AdminManagement: React.FC = () => {
       setLoading(true)
       
       if (editingUser) {
-        // Update logic - would need API endpoint
-        toast.warning('Chức năng cập nhật chưa được implement')
+        // Update existing admin/moderator account
+        const updateData: {
+          email: string
+          full_name: string
+          role: 'admin' | 'moderator'
+          password?: string
+        } = {
+          email: formData.email,
+          full_name: formData.full_name,
+          role: formData.role,
+        }
+        
+        // Only include password if it was provided
+        if (formData.password && formData.password.trim() !== '') {
+          updateData.password = formData.password
+        }
+        
+        await adminService.updateUser(editingUser.id, updateData)
+        toast.success('Đã cập nhật thông tin thành công!')
       } else {
-        // Create new admin account
-        // Note: Register API creates customer by default, need to update role to admin via admin API
-        await authService.register({
+        // Create new admin/moderator account
+        await adminService.createAdminUser({
           username: formData.username,
           password: formData.password,
           email: formData.email,
           full_name: formData.full_name,
+          role: formData.role,
         })
-        toast.success('Tài khoản mới đã được tạo. Cần update role thành admin trong DB.')
+        toast.success(`Đã tạo ${formData.role === 'admin' ? 'Super Admin' : 'Moderator'} thành công!`)
       }
       
       handleCloseModal()
@@ -116,7 +159,50 @@ const AdminManagement: React.FC = () => {
     }
   }
 
+  const handleToggleClick = (user: User) => {
+    // Check if this is the only active admin
+    const activeAdmins = users.filter(u => u.is_active && u.role === 'admin')
+    const isOnlyAdmin = activeAdmins.length === 1 && activeAdmins[0].id === user.id
+    
+    if (isOnlyAdmin && user.is_active) {
+      toast.error('Không thể vô hiệu hóa admin duy nhất trong hệ thống. Vui lòng tạo thêm admin khác trước.')
+      return
+    }
+    
+    setToggleConfirm({
+      isOpen: true,
+      userId: user.id,
+      userName: user.full_name || user.username,
+      currentStatus: user.is_active
+    })
+  }
+
+  const handleToggleConfirm = async () => {
+    if (!toggleConfirm.userId) return
+    
+    try {
+      await adminService.updateUserStatus(toggleConfirm.userId, !toggleConfirm.currentStatus)
+      const action = toggleConfirm.currentStatus ? 'vô hiệu hóa' : 'kích hoạt'
+      toast.success(`Đã ${action} tài khoản "${toggleConfirm.userName}"`)
+      await fetchUsers()
+    } catch (error) {
+      console.error('Failed to toggle user status:', error)
+      toast.error('Lỗi khi thay đổi trạng thái tài khoản')
+    } finally {
+      setToggleConfirm({ isOpen: false, userId: null, userName: '', currentStatus: true })
+    }
+  }
+
   const handleDeleteClick = (user: User) => {
+    // Check if this is the only active admin
+    const activeAdmins = users.filter(u => u.is_active && u.role === 'admin')
+    const isOnlyAdmin = activeAdmins.length === 1 && activeAdmins[0].id === user.id
+    
+    if (isOnlyAdmin) {
+      toast.error('Không thể vô hiệu hóa admin duy nhất trong hệ thống. Vui lòng tạo thêm admin khác trước.')
+      return
+    }
+    
     setDeleteConfirm({
       isOpen: true,
       userId: user.id,
@@ -139,12 +225,27 @@ const AdminManagement: React.FC = () => {
   }
 
   const columns = [
-    { key: 'username', label: 'Username' },
-    { key: 'email', label: 'Email' },
-    { key: 'full_name', label: 'Họ Tên' },
+    { key: 'username', label: 'Username', width: '18%' },
+    { key: 'email', label: 'Email', width: '22%' },
+    { key: 'full_name', label: 'Họ Tên', width: '20%' },
+    {
+      key: 'role',
+      label: 'Vai Trò',
+      width: '12%',
+      render: (user: User) => {
+        if (user.role === 'admin') {
+          return <span className="px-2 py-1 rounded text-xs font-semibold bg-purple-100 text-purple-800">Super Admin</span>
+        } else if (user.role === 'moderator') {
+          return <span className="px-2 py-1 rounded text-xs font-semibold bg-blue-100 text-blue-800">Moderator</span>
+        } else {
+          return <span className="px-2 py-1 rounded text-xs font-semibold bg-green-100 text-green-800">Editor</span>
+        }
+      },
+    },
     {
       key: 'is_active',
       label: 'Trạng Thái',
+      width: '12%',
       render: (user: User) => (
         <span className={`px-2 py-1 rounded text-xs ${
           user.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
@@ -156,24 +257,45 @@ const AdminManagement: React.FC = () => {
     {
       key: 'actions',
       label: 'Hành Động',
-      render: (user: User) => (
-        <div className="flex gap-2">
-          <button
-            onClick={() => handleOpenModal(user)}
-            className="text-blue-600 hover:text-blue-800"
-            title="Chỉnh sửa"
-          >
-            <Edit2 size={18} />
-          </button>
-          <button
-            onClick={() => handleDeleteClick(user)}
-            className="text-red-600 hover:text-red-800"
-            title="Xóa"
-          >
-            <Trash2 size={18} />
-          </button>
-        </div>
-      )
+      width: '15%',
+      render: (user: User) => {
+        // Check if this is the only active admin (chỉ đếm role='admin', không đếm 'moderator')
+        const activeAdmins = users.filter(u => u.is_active && u.role === 'admin')
+        const isOnlyAdmin = activeAdmins.length === 1 && activeAdmins[0].id === user.id
+        const isToggleDisabled = isOnlyAdmin && user.is_active
+        
+        return (
+          <div className="flex gap-2">
+            <button
+              onClick={() => handleOpenModal(user)}
+              className="text-blue-600 hover:text-blue-800"
+              title="Chỉnh sửa"
+            >
+              <Edit2 size={18} />
+            </button>
+            <button
+              onClick={() => handleToggleClick(user)}
+              disabled={isToggleDisabled}
+              className={`${
+                isToggleDisabled 
+                  ? 'text-gray-400 cursor-not-allowed' 
+                  : user.is_active 
+                    ? 'text-green-600 hover:text-green-800' 
+                    : 'text-red-600 hover:text-red-800'
+              }`}
+              title={
+                isToggleDisabled 
+                  ? 'Không thể vô hiệu hóa admin duy nhất' 
+                  : user.is_active 
+                    ? 'Vô hiệu hóa' 
+                    : 'Kích hoạt'
+              }
+            >
+              {user.is_active ? <ToggleLeft size={18} /> : <ToggleRight size={18} />}
+            </button>
+          </div>
+        )
+      }
     }
   ]
 
@@ -242,6 +364,73 @@ const AdminManagement: React.FC = () => {
             placeholder="Nguyễn Văn A"
           />
           
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Vai Trò <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={formData.role}
+              onChange={(e) => setFormData({ ...formData, role: e.target.value as 'admin' | 'moderator' | 'editor' })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+              required
+              disabled={editingUser ? (() => {
+                // Đếm số admin active KHÁC user đang được edit
+                const otherActiveAdmins = users.filter(u => 
+                  u.is_active && 
+                  u.role === 'admin' && 
+                  u.id !== editingUser.id
+                )
+                
+                // Disable nếu:
+                // 1. Không còn admin active nào khác và user này là admin (không cho đổi thành moderator/editor)
+                // 2. User này là moderator/editor và cố đổi thành admin
+                if (otherActiveAdmins.length === 0 && editingUser.role === 'admin') {
+                  return true
+                }
+                if ((editingUser.role === 'moderator' || editingUser.role === 'editor') && formData.role === 'admin') {
+                  return true
+                }
+                return false
+              })() : false}
+            >
+              <option value="editor">Editor (Quản lý nội dung)</option>
+              <option value="moderator">Moderator (Quyền hạn chế)</option>
+              <option value="admin">Super Admin (Toàn quyền)</option>
+            </select>
+            <p className="mt-1 text-xs text-gray-500">
+              {formData.role === 'admin' 
+                ? 'Super Admin có thể quản lý tất cả tính năng, bao gồm quản lý admin khác'
+                : formData.role === 'moderator'
+                ? 'Moderator có thể quản lý sách, đơn hàng, banner nhưng không thể quản lý admin'
+                : 'Editor có thể quản lý sách, banner, categories nhưng không thể quản lý đơn hàng và admin'}
+            </p>
+            {editingUser && (() => {
+              // Đếm số admin active KHÁC user đang được edit
+              const otherActiveAdmins = users.filter(u => 
+                u.is_active && 
+                u.role === 'admin' && 
+                u.id !== editingUser.id
+              )
+              const isOnlyAdmin = otherActiveAdmins.length === 0 && editingUser.role === 'admin'
+              const isTryingAdmin = (editingUser.role === 'moderator' || editingUser.role === 'editor') && formData.role === 'admin'
+              
+              return (
+                <>
+                  {isOnlyAdmin && (
+                    <p className="mt-1 text-xs text-red-500">
+                      Không thể đổi role của admin duy nhất thành moderator hoặc editor
+                    </p>
+                  )}
+                  {isTryingAdmin && (
+                    <p className="mt-1 text-xs text-red-500">
+                      Moderator và Editor không thể đổi thành Super Admin
+                    </p>
+                  )}
+                </>
+              )
+            })()}
+          </div>
+          
           {!editingUser && (
             <Input
               label="Password"
@@ -250,6 +439,16 @@ const AdminManagement: React.FC = () => {
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               required
               placeholder="Mật khẩu"
+            />
+          )}
+          
+          {editingUser && (
+            <Input
+              label="Password (Để trống nếu không đổi)"
+              type="password"
+              value={formData.password}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              placeholder="Nhập mật khẩu mới (tùy chọn)"
             />
           )}
           
@@ -277,6 +476,18 @@ const AdminManagement: React.FC = () => {
         confirmText="Vô Hiệu Hóa"
         cancelText="Hủy"
         variant="danger"
+      />
+
+      {/* Toggle Status Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={toggleConfirm.isOpen}
+        title={toggleConfirm.currentStatus ? "Xác Nhận Vô Hiệu Hóa" : "Xác Nhận Kích Hoạt"}
+        message={`Bạn có chắc chắn muốn ${toggleConfirm.currentStatus ? 'vô hiệu hóa' : 'kích hoạt'} tài khoản "${toggleConfirm.userName}"?`}
+        onConfirm={handleToggleConfirm}
+        onCancel={() => setToggleConfirm({ isOpen: false, userId: null, userName: '', currentStatus: true })}
+        confirmText={toggleConfirm.currentStatus ? "Vô Hiệu Hóa" : "Kích Hoạt"}
+        cancelText="Hủy"
+        variant={toggleConfirm.currentStatus ? "danger" : "default"}
       />
     </AdminLayout>
   )

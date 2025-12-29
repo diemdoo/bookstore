@@ -45,6 +45,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }
 
+  const adminLogin = async (username: string, password: string) => {
+    try {
+      const user = await authService.adminLogin({ username, password })
+      setUser(user)
+      return user
+    } catch (error) {
+      throw error
+    }
+  }
+
   const register = async (data: RegisterRequest) => {
     try {
       const user = await authService.register(data)
@@ -68,6 +78,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     loading,
     setUser,
     login,
+    adminLogin,
     register,
     logout,
     checkAuth,

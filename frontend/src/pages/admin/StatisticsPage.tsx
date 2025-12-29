@@ -5,8 +5,22 @@ import { adminService } from '../../services/api'
 import { formatPrice, getStatusText, getStatusProgressColor } from '../../utils/formatters'
 import type { Statistics } from '../../types'
 import { BookOpen } from 'lucide-react'
+import { useAuth } from '../../contexts/AuthContext'
 
 const StatisticsPage: React.FC = () => {
+  const { user: currentUser } = useAuth()
+  
+  // Chặn editor truy cập trang này
+  if (currentUser?.role === 'editor') {
+    return (
+      <AdminLayout title="Thống Kê">
+        <div className="bg-white rounded-lg shadow p-8 text-center">
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Không có quyền truy cập</h2>
+          <p className="text-gray-600">Chỉ Admin và Moderator mới có quyền xem thống kê.</p>
+        </div>
+      </AdminLayout>
+    )
+  }
   const [stats, setStats] = useState<Statistics | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -46,7 +60,8 @@ const StatisticsPage: React.FC = () => {
   }
 
   const totalOrdersCount = stats.total_orders || 0
-  const statusEntries = Object.entries(stats.orders_by_status || {})
+  // Sort status entries by count (descending) - highest percentage first
+  const statusEntries = Object.entries(stats.orders_by_status || {}).sort((a, b) => b[1] - a[1])
 
   return (
     <AdminLayout title="Thống Kê">

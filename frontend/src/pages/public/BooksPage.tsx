@@ -99,7 +99,7 @@ const BooksPage: React.FC = () => {
           <>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
               {books.map((book) => (
-                <BookCard key={book.id} book={book} compact />
+                <BookCard key={book.id} book={book} compact categorySlug={category?.slug} />
               ))}
             </div>
 

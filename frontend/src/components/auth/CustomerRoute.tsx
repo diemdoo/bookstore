@@ -2,11 +2,15 @@ import React from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 
-interface ProtectedRouteProps {
+interface CustomerRouteProps {
   children: React.ReactNode
 }
 
-export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
+/**
+ * Route guard để đảm bảo chỉ customer mới có thể truy cập
+ * Nếu admin đã đăng nhập, redirect về /admin
+ */
+export const CustomerRoute: React.FC<CustomerRouteProps> = ({ children }) => {
   const { user, loading } = useAuth()
 
   // Show loading state while checking authentication
@@ -21,17 +25,11 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     )
   }
 
-  // If not authenticated, redirect to admin login
-  if (!user) {
-    return <Navigate to="/admin/login" replace />
+  // If admin is logged in, redirect to admin dashboard
+  if (user && user.role === 'admin') {
+    return <Navigate to="/admin" replace />
   }
 
-  // Check if user has admin, moderator or editor role (admin routes only)
-  if (user.role !== 'admin' && user.role !== 'moderator' && user.role !== 'editor') {
-    return <Navigate to="/" replace />
-  }
-
-  // User is authenticated and has admin role, render the protected content
+  // Customer or not logged in, allow access
   return <>{children}</>
 }
-

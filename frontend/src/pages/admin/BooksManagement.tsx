@@ -44,6 +44,25 @@ const BooksManagement: React.FC = () => {
     pages: 0,
     weight: 0,
   })
+  
+  // Preview slug (readonly, chỉ để hiển thị)
+  const [previewSlug, setPreviewSlug] = useState('')
+  
+  // Track if title has changed (for warning message)
+  const [isTitleChanged, setIsTitleChanged] = useState(false)
+  const [originalTitle, setOriginalTitle] = useState('')
+  
+  // Helper function to generate slug from Vietnamese text
+  const generateSlug = (text: string): string => {
+    return text
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
+      .replace(/[^\w\s-]/g, '') // Remove special characters
+      .replace(/[-\s]+/g, '-') // Replace spaces and multiple dashes with single dash
+      .trim()
+      .replace(/^-+|-+$/g, '') // Remove leading/trailing dashes
+  }
 
   const fetchBooks = async (page: number = 1, search: string = '') => {
     try {
@@ -96,6 +115,9 @@ const BooksManagement: React.FC = () => {
         weight: book.weight || 0,
       })
       setImagePreview(book.image_url || '')
+      setPreviewSlug(book.slug || '')
+      setOriginalTitle(book.title)
+      setIsTitleChanged(false)
     } else {
       setEditingBook(null)
       setFormData({
@@ -114,6 +136,9 @@ const BooksManagement: React.FC = () => {
         weight: 0,
       })
       setImagePreview('')
+      setPreviewSlug('')
+      setOriginalTitle('')
+      setIsTitleChanged(false)
     }
     setSelectedFile(null)
     setIsModalOpen(true)
@@ -177,25 +202,33 @@ const BooksManagement: React.FC = () => {
   }
 
   const columns = [
-    { key: 'id', label: 'Mã Sách' },
-    { key: 'title', label: 'Tên Sách' },
-    { key: 'publisher', label: 'Nhà Xuất Bản' },
-    { key: 'author', label: 'Tác Giả' },
+    { 
+      key: 'book_code', 
+      label: 'Mã Sách',
+      width: '10%',
+      render: (book: Book) => book.book_code || '-'
+    },
+    { key: 'title', label: 'Tên Sách', width: '20%' },
+    { key: 'publisher', label: 'Nhà Xuất Bản', width: '13%' },
+    { key: 'author', label: 'Tác Giả', width: '13%' },
     {
       key: 'price',
       label: 'Giá',
+      width: '12%',
       render: (book: Book) => `${book.price.toLocaleString('vi-VN')} đ`,
     },
     {
       key: 'description',
       label: 'Mô tả',
+      width: '18%',
       render: (book: Book) => (
-        <div className="max-w-xs truncate">{book.description}</div>
+        <div className="truncate">{book.description}</div>
       ),
     },
     {
       key: 'actions',
       label: 'Hành Động',
+      width: '10%',
       render: (book: Book) => (
         <div className="flex gap-2">
           <button
@@ -351,9 +384,41 @@ const BooksManagement: React.FC = () => {
             <Input
               label="Tên Sách"
               value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              onChange={(e) => {
+                const newTitle = e.target.value
+                setFormData({ ...formData, title: newTitle })
+                // Auto-generate preview slug (readonly, chỉ để hiển thị)
+                setPreviewSlug(generateSlug(newTitle))
+                // Check if title has changed from original
+                if (editingBook && newTitle !== originalTitle) {
+                  setIsTitleChanged(true)
+                } else {
+                  setIsTitleChanged(false)
+                }
+              }}
               required
             />
+            
+            {/* Slug preview (readonly) - Always visible, simple version */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Slug (URL) <span className="text-gray-400 text-xs font-normal">(tự động tạo)</span>
+              </label>
+              <input
+                type="text"
+                value={previewSlug || editingBook?.slug || ''}
+                readOnly
+                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-600 cursor-not-allowed"
+                placeholder="sẽ được tự động tạo từ tên sách"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                {editingBook 
+                  ? (isTitleChanged 
+                      ? 'Slug sẽ cập nhật khi lưu (vì tên sách thay đổi)' 
+                      : 'Slug hiện tại của sách')
+                  : 'Slug sẽ tự động tạo khi lưu sách'}
+              </p>
+            </div>
             <Input
               label="Tác Giả"
               value={formData.author}

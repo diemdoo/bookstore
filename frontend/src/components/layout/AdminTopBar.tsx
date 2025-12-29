@@ -2,6 +2,7 @@ import React from 'react'
 import { User } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
+import { useSidebar } from '../../contexts/SidebarContext'
 
 interface AdminTopBarProps {
   title: string
@@ -10,7 +11,9 @@ interface AdminTopBarProps {
 export const AdminTopBar: React.FC<AdminTopBarProps> = ({ title }) => {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const { isCollapsed } = useSidebar()
   const [showMenu, setShowMenu] = React.useState(false)
+  const leftMargin = isCollapsed ? 'left-16' : 'left-64'
 
   const handleLogout = async () => {
     await logout()
@@ -18,7 +21,7 @@ export const AdminTopBar: React.FC<AdminTopBarProps> = ({ title }) => {
   }
 
   return (
-    <div className="h-16 bg-white border-b border-gray-200 fixed top-0 right-0 left-64 z-10">
+    <div className={`h-16 bg-white border-b border-gray-200 fixed top-0 right-0 ${leftMargin} z-10 transition-all duration-300`}>
       <div className="h-full px-6 flex items-center justify-between">
         <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
         

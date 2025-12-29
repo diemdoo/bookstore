@@ -9,7 +9,7 @@ Các endpoint trong file này:
 - POST /api/chatbot: Xử lý câu hỏi từ chatbot và trả về câu trả lời (FAQ + Gemini)
 
 Dependencies:
-- google.genai: Google Gen AI SDK (new library, replaces deprecated google-generativeai)
+- google.genai: Google Gen AI SDK
 - models.Book, models.Category: Để lấy thông tin từ database
 - config.Config: Để lấy GEMINI_API_KEY
 """
@@ -45,12 +45,12 @@ def get_genai_client():
         if api_key:
             try:
                 _genai_client = genai.Client(api_key=api_key)
-                logger.info("[CHATBOT] ✓ Gemini client initialized")
+                logger.info("[CHATBOT] Gemini client initialized")
             except Exception as e:
-                logger.error(f"[CHATBOT] ❌ Failed to initialize Gemini client: {str(e)}")
+                logger.error(f"[CHATBOT] Failed to initialize Gemini client: {str(e)}")
                 return None
         else:
-            logger.warning("[CHATBOT] ⚠️ No API key, cannot initialize Gemini client")
+            logger.warning("[CHATBOT] No API key, cannot initialize Gemini client")
             return None
     
     return _genai_client
@@ -410,12 +410,12 @@ def query_gemini(question, system_prompt):
         # Bước 1: Lấy Gemini client
         client = get_genai_client()
         if not client:
-            logger.warning("[CHATBOT] ❌ Gemini client not available")
+            logger.warning("[CHATBOT]  Gemini client not available")
             return None
         
         api_key = Config.GEMINI_API_KEY
         logger.info(f"[CHATBOT] ✓ API Key exists: {api_key[:10]}...{api_key[-5:] if len(api_key) > 15 else '***'}")
-        logger.info(f"[CHATBOT] 📤 Calling Gemini API with question: {question[:50]}...")
+        logger.info(f"[CHATBOT]  Calling Gemini API with question: {question[:50]}...")
         
         # Bước 2: Gọi API với new library structure
         # Sử dụng gemini-2.5-flash (latest model, nhanh, phù hợp cho chatbot)
@@ -430,21 +430,21 @@ def query_gemini(question, system_prompt):
         # Bước 3: Trả về text response
         if response and response.text:
             answer_text = response.text
-            logger.info(f"[CHATBOT] ✅ Gemini response received: {answer_text[:100]}...")
+            logger.info(f"[CHATBOT]  Gemini response received: {answer_text[:100]}...")
             return answer_text
         else:
-            logger.warning("[CHATBOT] ⚠️ Gemini response is empty")
+            logger.warning("[CHATBOT]  Gemini response is empty")
             return None
         
     except errors.APIError as e:
         # Log API error chi tiết
-        logger.error(f"[CHATBOT] ❌ Gemini API Error: {e.code} - {e.message}")
+        logger.error(f"[CHATBOT]  Gemini API Error: {e.code} - {e.message}")
         import traceback
         logger.error(f"[CHATBOT] Traceback: {traceback.format_exc()}")
         return None
     except Exception as e:
         # Log generic error chi tiết
-        logger.error(f"[CHATBOT] ❌ Error querying Gemini: {str(e)}")
+        logger.error(f"[CHATBOT]  Error querying Gemini: {str(e)}")
         logger.error(f"[CHATBOT] Error type: {type(e).__name__}")
         import traceback
         logger.error(f"[CHATBOT] Traceback: {traceback.format_exc()}")
@@ -484,7 +484,7 @@ def chatbot():
         question = data.get('question', '').strip()
         
         logger.info("=" * 50)
-        logger.info(f"[CHATBOT] 📨 Received question: {question}")
+        logger.info(f"[CHATBOT]  Received question: {question}")
         
         # Bước 2: Validate question
         if not question:
@@ -492,22 +492,22 @@ def chatbot():
         
         # Bước 3: Kiểm tra API key
         api_key = Config.GEMINI_API_KEY
-        logger.info(f"[CHATBOT] 🔍 Checking API key... (exists: {api_key is not None})")
+        logger.info(f"[CHATBOT]  Checking API key... (exists: {api_key is not None})")
         if api_key:
-            logger.info(f"[CHATBOT] 🔑 API Key found: {api_key[:10]}...{api_key[-5:] if len(api_key) > 15 else '***'}")
+            logger.info(f"[CHATBOT]  API Key found: {api_key[:10]}...{api_key[-5:] if len(api_key) > 15 else '***'}")
         else:
-            logger.warning("[CHATBOT] ⚠️ API Key is None or empty")
+            logger.warning("[CHATBOT]  API Key is None or empty")
         
         answer = None
         source = None
         
         if api_key:
             # Bước 4: Có API key - luôn gọi Gemini trước
-            logger.info("[CHATBOT] 🔑 API Key found, calling Gemini...")
+            logger.info("[CHATBOT]  API Key found, calling Gemini...")
             
             # Build system prompt với context về bookstore và thông tin sách (nếu có)
             system_prompt = build_system_prompt(question=question)
-            logger.info(f"[CHATBOT] 📝 System prompt built (length: {len(system_prompt)} chars)")
+            logger.info(f"[CHATBOT]  System prompt built (length: {len(system_prompt)} chars)")
             
             # Gọi Gemini API
             gemini_answer = query_gemini(question, system_prompt)
@@ -515,10 +515,10 @@ def chatbot():
             if gemini_answer:
                 answer = gemini_answer
                 source = 'gemini'
-                logger.info("[CHATBOT] ✅ Using Gemini response")
+                logger.info("[CHATBOT]  Using Gemini response")
             else:
                 # Fallback về FAQ nếu Gemini fail
-                logger.warning("[CHATBOT] ⚠️ Gemini failed, falling back to FAQ")
+                logger.warning("[CHATBOT]  Gemini failed, falling back to FAQ")
                 question_lower = question.lower()
                 for keyword, response in FAQ_DATABASE.items():
                     if keyword != 'mặc định' and keyword in question_lower:
@@ -531,7 +531,7 @@ def chatbot():
                     source = 'faq_default'
         else:
             # Bước 5: Không có API key - dùng FAQ
-            logger.warning("[CHATBOT] ⚠️ No API Key, using FAQ matching")
+            logger.warning("[CHATBOT]  No API Key, using FAQ matching")
             question_lower = question.lower()
             for keyword, response in FAQ_DATABASE.items():
                 if keyword != 'mặc định' and keyword in question_lower:
@@ -543,7 +543,7 @@ def chatbot():
                 answer = FAQ_DATABASE.get('mặc định')
                 source = 'faq_default'
         
-        logger.info(f"[CHATBOT] 📤 Response source: {source}")
+        logger.info(f"[CHATBOT]  Response source: {source}")
         logger.info("=" * 50)
         
         # Bước 6: Trả về câu trả lời
@@ -554,7 +554,7 @@ def chatbot():
         
     except Exception as e:
         # Log error và fallback
-        logger.error(f"[CHATBOT] ❌ Exception in chatbot route: {str(e)}")
+        logger.error(f"[CHATBOT]  Exception in chatbot route: {str(e)}")
         import traceback
         logger.error(f"[CHATBOT] Traceback: {traceback.format_exc()}")
         

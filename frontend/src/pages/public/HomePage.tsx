@@ -353,13 +353,13 @@ const HomePage: React.FC = () => {
               <>
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
                   {categoryBooks.map((book) => (
-                    <BookCard key={book.id} book={book} showSold />
+                    <BookCard key={book.id} book={book} showSold categorySlug={category.slug} />
                   ))}
                 </div>
                 
                 <div className="flex justify-center mt-6">
                   <Link
-                    to={`/category/${encodeURIComponent(category.key)}`}
+                    to={`/category/${category.slug}`}
                     className="px-6 py-2 border-2 border-primary text-primary rounded-lg font-semibold hover:bg-primary hover:text-white transition-colors flex items-center gap-2"
                   >
                     Xem Thêm

@@ -21,8 +21,8 @@ export const CategoryMenu: React.FC = () => {
     fetchCategories()
   }, [])
 
-  const handleCategoryClick = (categoryKey: string) => {
-    navigate(`/books?category=${categoryKey}`)
+  const handleCategoryClick = (slug: string) => {
+    navigate(`/category/${slug}`)
     setIsOpen(false)
   }
 
@@ -52,7 +52,7 @@ export const CategoryMenu: React.FC = () => {
               categories.map((category) => (
                 <button
                   key={category.key}
-                  onClick={() => handleCategoryClick(category.key)}
+                  onClick={() => handleCategoryClick(category.slug)}
                   className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-50 transition-colors"
                 >
                   {category.name}

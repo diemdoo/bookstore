@@ -8,6 +8,7 @@ import { adminService, authService } from '../../services/api'
 import { Plus, Edit2, ToggleLeft, ToggleRight, X } from 'lucide-react'
 import type { User } from '../../types'
 import { useToast } from '../../components/ui/Toast'
+import { useAuth } from '../../contexts/AuthContext'
 
 interface CustomerFormData {
   username: string
@@ -17,6 +18,19 @@ interface CustomerFormData {
 }
 
 const CustomerManagement: React.FC = () => {
+  const { user: currentUser } = useAuth()
+  
+  // Chặn editor truy cập trang này
+  if (currentUser?.role === 'editor') {
+    return (
+      <AdminLayout title="Quản Lý Khách Hàng">
+        <div className="bg-white rounded-lg shadow p-8 text-center">
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Không có quyền truy cập</h2>
+          <p className="text-gray-600">Chỉ Admin và Moderator mới có quyền quản lý khách hàng.</p>
+        </div>
+      </AdminLayout>
+    )
+  }
   const [users, setUsers] = useState<User[]>([])
   const [toggleConfirm, setToggleConfirm] = useState<{ isOpen: boolean; userId: number | null; userName: string; currentStatus: boolean }>({
     isOpen: false,
@@ -29,7 +43,6 @@ const CustomerManagement: React.FC = () => {
   const [editingUser, setEditingUser] = useState<User | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
-  const itemsPerPage = 20
   const [formData, setFormData] = useState<CustomerFormData>({
     username: '',
     password: '',
@@ -38,13 +51,13 @@ const CustomerManagement: React.FC = () => {
   })
   const toast = useToast()
 
-  const fetchUsers = async () => {
+  const fetchUsers = async (page: number = 1) => {
     try {
       setLoading(true)
-      const data = await adminService.getUsers()
-      const customerUsers = data.filter(u => u.role === 'customer')
-      setUsers(customerUsers)
-      setTotalPages(Math.ceil(customerUsers.length / itemsPerPage))
+      const data = await adminService.getUsers('customer', page, 20)
+      setUsers(data.users)
+      setCurrentPage(data.page)
+      setTotalPages(data.pages)
     } catch (error) {
       console.error('Failed to fetch users:', error)
     } finally {
@@ -52,14 +65,9 @@ const CustomerManagement: React.FC = () => {
     }
   }
 
-  const paginatedUsers = users.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  )
-
   useEffect(() => {
-    fetchUsers()
-  }, [])
+    fetchUsers(currentPage)
+  }, [currentPage])
 
   const handleOpenModal = (user?: User) => {
     if (user) {
@@ -142,19 +150,22 @@ const CustomerManagement: React.FC = () => {
     { 
       key: 'customer_code', 
       label: 'Mã KH',
+      width: '12%',
       render: (user: User) => user.customer_code || '-'
     },
-    { key: 'username', label: 'Username' },
-    { key: 'email', label: 'Email' },
-    { key: 'full_name', label: 'Họ Tên' },
+    { key: 'username', label: 'Username', width: '15%' },
+    { key: 'email', label: 'Email', width: '20%' },
+    { key: 'full_name', label: 'Họ Tên', width: '18%' },
     {
       key: 'created_at',
       label: 'Ngày Đăng Ký',
+      width: '13%',
       render: (user: User) => new Date(user.created_at).toLocaleDateString('vi-VN'),
     },
     {
       key: 'is_active',
       label: 'Trạng Thái',
+      width: '12%',
       render: (user: User) => (
         <span className={`px-2 py-1 rounded text-xs ${
           user.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
@@ -166,6 +177,7 @@ const CustomerManagement: React.FC = () => {
     {
       key: 'actions',
       label: 'Hành Động',
+      width: '10%',
       render: (user: User) => (
         <div className="flex gap-2">
           <button
@@ -177,7 +189,7 @@ const CustomerManagement: React.FC = () => {
           </button>
           <button
             onClick={() => handleToggleClick(user)}
-            className="text-green-600 hover:text-green-800"
+            className={user.is_active ? 'text-green-600 hover:text-green-800' : 'text-red-600 hover:text-red-800'}
             title={user.is_active ? 'Vô hiệu hóa' : 'Kích hoạt'}
           >
             {user.is_active ? <ToggleLeft size={18} /> : <ToggleRight size={18} />}
@@ -199,7 +211,7 @@ const CustomerManagement: React.FC = () => {
         <div className="text-center py-8">Đang tải...</div>
       ) : (
         <>
-          <Table columns={columns} data={paginatedUsers} />
+          <Table columns={columns} data={users} />
           {totalPages > 1 && (
             <div className="mt-4">
               <Pagination

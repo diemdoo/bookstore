@@ -165,8 +165,12 @@ class Book(db.Model):
     # Primary key
     id = db.Column(db.Integer, primary_key=True)
     
+    # Mã sách (MS000001, MS000002, ...)
+    book_code = db.Column(db.String(20), unique=True, nullable=False)
+    
     # Thông tin cơ bản
     title = db.Column(db.String(200), nullable=False)
+    slug = db.Column(db.String(200), unique=True, nullable=False)  # Slug dùng cho URL (e.g., 'cay-cam-ngot-cua-toi')
     author = db.Column(db.String(100), nullable=False)
     category = db.Column(db.String(50), nullable=False)  # Reference đến Category.key
     description = db.Column(db.Text, nullable=True)
@@ -233,7 +237,9 @@ class Book(db.Model):
         """
         return {
             'id': self.id,
+            'book_code': self.book_code,
             'title': self.title,
+            'slug': self.slug,
             'author': self.author,
             'category': self.category,
             'description': self.description,
@@ -275,9 +281,13 @@ class Category(db.Model):
     # Primary key
     id = db.Column(db.Integer, primary_key=True)
     
+    # Mã danh mục (DM000001, DM000002, ...)
+    category_code = db.Column(db.String(20), unique=True, nullable=False)
+    
     # Thông tin category
-    key = db.Column(db.String(50), unique=True, nullable=False)  # e.g., 'Sach_Tieng_Viet' (dùng trong URL)
+    key = db.Column(db.String(50), unique=True, nullable=False)  # e.g., 'SACH_TIENG_VIET' (định danh nội bộ)
     name = db.Column(db.String(100), nullable=False)  # e.g., 'Sách Tiếng Việt' (tên hiển thị)
+    slug = db.Column(db.String(100), unique=True, nullable=False)  # e.g., 'sach-tieng-viet' (dùng cho URL)
     description = db.Column(db.Text, nullable=True)
     display_order = db.Column(db.Integer, default=0)  # Thứ tự hiển thị trong UI (số nhỏ hơn hiển thị trước)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
@@ -300,8 +310,10 @@ class Category(db.Model):
         """
         return {
             'id': self.id,
+            'category_code': self.category_code,
             'key': self.key,
             'name': self.name,
+            'slug': self.slug,
             'description': self.description,
             'display_order': self.display_order,
             'is_active': self.is_active,
@@ -520,10 +532,13 @@ class Banner(db.Model):
     # Primary key
     id = db.Column(db.Integer, primary_key=True)
     
+    # Mã banner (BN000001, BN000002, ...)
+    banner_code = db.Column(db.String(20), unique=True, nullable=False)
+    
     # Thông tin banner
     title = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text)
-    image_url = db.Column(db.String(500), nullable=False)
+    image_url = db.Column(db.String(500), nullable=True)  # Optional - can be empty for text-only banners
     link = db.Column(db.String(500))  # Optional link khi click vào banner (internal route hoặc external URL)
     
     # Styling
@@ -553,6 +568,7 @@ class Banner(db.Model):
         """
         return {
             'id': self.id,
+            'banner_code': self.banner_code,
             'title': self.title,
             'description': self.description,
             'image_url': self.image_url,

@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { User, Lock } from 'lucide-react'
+import { User, Lock, ArrowLeft } from 'lucide-react'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { useAuth } from '../../contexts/AuthContext'
@@ -25,15 +25,19 @@ const LoginPage: React.FC = () => {
     setLoading(true)
     try {
       const loggedInUser = await login(username, password)
+      // Backend đã đảm bảo chỉ customer mới có thể login qua đây
+      // Nếu có admin cố gắng login, backend sẽ trả về lỗi
       toast.success('Đăng nhập thành công!')
-      // Redirect based on user role
-      if (loggedInUser.role === 'admin') {
-        navigate('/admin')
-      } else {
-        navigate('/')
-      }
+      navigate('/')
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Đăng nhập thất bại')
+      const errorMessage = error instanceof Error ? error.message : 'Đăng nhập thất bại'
+      toast.error(errorMessage)
+      // Nếu là admin cố gắng login, redirect đến admin login
+      if (errorMessage.includes('admin')) {
+        setTimeout(() => {
+          navigate('/admin/login')
+        }, 2000)
+      }
     } finally {
       setLoading(false)
     }
@@ -42,6 +46,17 @@ const LoginPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary to-indigo-700 flex items-center justify-center px-4">
       <div className="max-w-md w-full">
+        {/* Back to Home Link */}
+        <div className="mb-6">
+          <Link 
+            to="/" 
+            className="inline-flex items-center text-white hover:text-gray-200 transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Trở về trang chủ
+          </Link>
+        </div>
+
         {/* Login Card */}
         <div className="bg-white rounded-2xl shadow-2xl p-8">
           {/* Header */}
