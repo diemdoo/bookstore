@@ -316,7 +316,7 @@ def seed_database():
             'price': 86000,
             'stock': 50,
             'description': 'Đắc Nhân Tâm của Dale Carnegie là quyển sách nổi tiếng nhất, bán chạy nhất và có tầm ảnh hưởng nhất của mọi thời đại.',
-            'image_url': 'https://cdn.duyne.me/books/3cdd9987-0942-4b44-81d7-f537d47e2397.jpg',
+            'image_url': 'https://cdn.diemdoo.me/books/05892fa6-11f9-4677-8fbd-ede3e0641141.jpg',
             'pages': 320,
             'category': 'SACH_TIENG_VIET'
         },
@@ -328,7 +328,7 @@ def seed_database():
             'price': 79000,
             'stock': 45,
             'description': 'Tất cả những trải nghiệm trong chuyến phiêu du theo đuổi vận mệnh của mình đã giúp Santiago thấu hiểu được ý nghĩa sâu xa nhất của hạnh phúc.',
-            'image_url': 'https://cdn.duyne.me/books/3cdd9987-0942-4b44-81d7-f537d47e2397.jpg',
+            'image_url': 'https://cdn.diemdoo.me/books/05892fa6-11f9-4677-8fbd-ede3e0641141.jpg',
             'pages': 227,
             'category': 'SACH_TIENG_VIET'
         },
@@ -340,7 +340,7 @@ def seed_database():
             'price': 198000,
             'stock': 30,
             'description': 'Sapiens là một cuốn sách đột phá về lịch sử nhân loại, từ khi xuất hiện cho đến ngày nay.',
-            'image_url': 'https://cdn.duyne.me/books/3cdd9987-0942-4b44-81d7-f537d47e2397.jpg',
+            'image_url': 'https://cdn.diemdoo.me/books/05892fa6-11f9-4677-8fbd-ede3e0641141.jpg',
             'pages': 543,
             'category': 'SACH_TIENG_VIET'
         },
@@ -352,7 +352,7 @@ def seed_database():
             'price': 90000,
             'stock': 60,
             'description': 'Bạn hối tiếc vì không nỗ lực hết mình khi còn trẻ, bởi vì bạn không thể có được những gì mình muốn.',
-            'image_url': 'https://cdn.duyne.me/books/3cdd9987-0942-4b44-81d7-f537d47e2397.jpg',
+            'image_url': 'https://cdn.diemdoo.me/books/05892fa6-11f9-4677-8fbd-ede3e0641141.jpg',
             'pages': 268,
             'category': 'SACH_TIENG_VIET'
         },
@@ -364,11 +364,11 @@ def seed_database():
             'price': 125000,
             'stock': 35,
             'description': 'Cuốn sách này đã giúp hàng triệu người trên thế giới đạt được thành công trong cuộc sống.',
-            'image_url': 'https://cdn.duyne.me/books/3cdd9987-0942-4b44-81d7-f537d47e2397.jpg',
+            'image_url': 'https://cdn.diemdoo.me/books/05892fa6-11f9-4677-8fbd-ede3e0641141.jpg',
             'pages': 382,
             'category': 'SACH_TIENG_VIET'
         },
-        # ===== CATEGORY: Truyen Tranh (5 books) =====
+        # ===== CATEGORY: Truyen Tranh =====
         {
             'title': 'One Piece - Tập 1',
             'author': 'Oda Eiichiro',
@@ -377,7 +377,7 @@ def seed_database():
             'price': 25000,
             'stock': 100,
             'description': 'Câu chuyện về hải tặc Luffy và ước mơ trở thành vua hải tặc.',
-            'image_url': 'https://cdn.duyne.me/books/3cdd9987-0942-4b44-81d7-f537d47e2397.jpg',
+            'image_url': 'https://cdn.diemdoo.me/books/05892fa6-11f9-4677-8fbd-ede3e0641141.jpg',
             'pages': 192,
             'category': 'TRUYEN_TRANH'
         },
@@ -389,7 +389,7 @@ def seed_database():
             'price': 25000,
             'stock': 95,
             'description': 'Ninja Naruto và ước mơ trở thành Hokage làng Lá.',
-            'image_url': 'https://cdn.duyne.me/books/3cdd9987-0942-4b44-81d7-f537d47e2397.jpg',
+            'image_url': 'https://cdn.diemdoo.me/books/a1ba0dfd-23f8-4522-ba70-df78aa5c27a2.jpg',
             'pages': 184,
             'category': 'TRUYEN_TRANH'
         },
@@ -401,7 +401,7 @@ def seed_database():
             'price': 22000,
             'stock': 88,
             'description': 'Cuộc phiêu lưu tìm kiếm bảy viên ngọc rồng của Son Goku.',
-            'image_url': 'https://cdn.duyne.me/books/3cdd9987-0942-4b44-81d7-f537d47e2397.jpg',
+            'image_url': 'https://cdn.diemdoo.me/books/05892fa6-11f9-4677-8fbd-ede3e0641141.jpg',
             'pages': 200,
             'category': 'TRUYEN_TRANH'
         },
@@ -413,7 +413,7 @@ def seed_database():
             'price': 20000,
             'stock': 120,
             'description': 'Chú mèo máy đến từ tương lai và những bảo bối kỳ diệu.',
-            'image_url': 'https://cdn.duyne.me/books/3cdd9987-0942-4b44-81d7-f537d47e2397.jpg',
+            'image_url': 'https://cdn.diemdoo.me/books/05892fa6-11f9-4677-8fbd-ede3e0641141.jpg',
             'pages': 176,
             'category': 'TRUYEN_TRANH'
         },
@@ -425,7 +425,7 @@ def seed_database():
             'price': 28000,
             'stock': 80,
             'description': 'Câu chuyện về cuộc chiến sinh tồn của loài người trước những Titan khổng lồ.',
-            'image_url': 'https://cdn.duyne.me/books/3cdd9987-0942-4b44-81d7-f537d47e2397.jpg',
+            'image_url': 'https://cdn.diemdoo.me/books/05892fa6-11f9-4677-8fbd-ede3e0641141.jpg',
             'pages': 200,
             'category': 'TRUYEN_TRANH'
         },
@@ -438,7 +438,7 @@ def seed_database():
             'price': 45000,
             'stock': 150,
             'description': 'Sổ tay ghi chép chất lượng cao, giấy dày, bìa cứng, kích thước A5.',
-            'image_url': 'https://cdn.duyne.me/books/3cdd9987-0942-4b44-81d7-f537d47e2397.jpg',
+            'image_url': 'https://cdn.diemdoo.me/books/05892fa6-11f9-4677-8fbd-ede3e0641141.jpg',
             'pages': 200,
             'category': 'DO_TRANG_TRI'
         },
@@ -450,7 +450,7 @@ def seed_database():
             'price': 85000,
             'stock': 80,
             'description': 'Bút máy cao cấp với ngòi mực mượt mà, thiết kế sang trọng.',
-            'image_url': 'https://cdn.duyne.me/books/3cdd9987-0942-4b44-81d7-f537d47e2397.jpg',
+            'image_url': 'https://cdn.diemdoo.me/books/05892fa6-11f9-4677-8fbd-ede3e0641141.jpg',
             'pages': 0,
             'category': 'DO_TRANG_TRI'
         },
@@ -462,7 +462,7 @@ def seed_database():
             'price': 65000,
             'stock': 100,
             'description': 'Bộ thước kẻ vẽ kỹ thuật chuyên nghiệp, đầy đủ các kích thước.',
-            'image_url': 'https://cdn.duyne.me/books/3cdd9987-0942-4b44-81d7-f537d47e2397.jpg',
+            'image_url': 'https://cdn.diemdoo.me/books/05892fa6-11f9-4677-8fbd-ede3e0641141.jpg',
             'pages': 0,
             'category': 'DO_TRANG_TRI'
         },
@@ -474,7 +474,7 @@ def seed_database():
             'price': 35000,
             'stock': 200,
             'description': 'Kẹp sách từ tính tiện lợi, giữ trang sách một cách chắc chắn.',
-            'image_url': 'https://cdn.duyne.me/books/3cdd9987-0942-4b44-81d7-f537d47e2397.jpg',
+            'image_url': 'https://cdn.diemdoo.me/books/05892fa6-11f9-4677-8fbd-ede3e0641141.jpg',
             'pages': 0,
             'category': 'DO_TRANG_TRI'
         },
@@ -486,7 +486,7 @@ def seed_database():
             'price': 25000,
             'stock': 180,
             'description': 'Bìa bọc sách nhựa trong suốt, bảo vệ sách khỏi bụi bẩn và nước.',
-            'image_url': 'https://cdn.duyne.me/books/3cdd9987-0942-4b44-81d7-f537d47e2397.jpg',
+            'image_url': 'https://cdn.diemdoo.me/books/05892fa6-11f9-4677-8fbd-ede3e0641141.jpg',
             'pages': 0,
             'category': 'DO_TRANG_TRI'
         },
@@ -499,7 +499,7 @@ def seed_database():
             'price': 12000,
             'stock': 500,
             'description': 'Bút bi ngòi 0.5mm, mực đen, viết mượt mà, bền bỉ.',
-            'image_url': 'https://cdn.duyne.me/books/3cdd9987-0942-4b44-81d7-f537d47e2397.jpg',
+            'image_url': 'https://cdn.diemdoo.me/books/05892fa6-11f9-4677-8fbd-ede3e0641141.jpg',
             'pages': 0,
             'category': 'VAN_PHONG_PHAM'
         },
@@ -511,7 +511,7 @@ def seed_database():
             'price': 15000,
             'stock': 300,
             'description': 'Tẩy chuột chất lượng cao, không làm bẩn giấy, mùi thơm.',
-            'image_url': 'https://cdn.duyne.me/books/3cdd9987-0942-4b44-81d7-f537d47e2397.jpg',
+            'image_url': 'https://cdn.diemdoo.me/books/05892fa6-11f9-4677-8fbd-ede3e0641141.jpg',
             'pages': 0,
             'category': 'VAN_PHONG_PHAM'
         },
@@ -523,7 +523,7 @@ def seed_database():
             'price': 55000,
             'stock': 120,
             'description': 'Compa vẽ hình tròn chuyên nghiệp, độ chính xác cao.',
-            'image_url': 'https://cdn.duyne.me/books/3cdd9987-0942-4b44-81d7-f537d47e2397.jpg',
+            'image_url': 'https://cdn.diemdoo.me/books/05892fa6-11f9-4677-8fbd-ede3e0641141.jpg',
             'pages': 0,
             'category': 'VAN_PHONG_PHAM'
         },
@@ -535,7 +535,7 @@ def seed_database():
             'price': 8000,
             'stock': 400,
             'description': 'Bút chì 2B chất lượng, mềm mại, dễ tẩy xóa.',
-            'image_url': 'https://cdn.duyne.me/books/3cdd9987-0942-4b44-81d7-f537d47e2397.jpg',
+            'image_url': 'https://cdn.diemdoo.me/books/05892fa6-11f9-4677-8fbd-ede3e0641141.jpg',
             'pages': 0,
             'category': 'VAN_PHONG_PHAM'
         },
@@ -547,7 +547,7 @@ def seed_database():
             'price': 18000,
             'stock': 250,
             'description': 'Giấy vở kẻ ngang, 200 tờ, chất lượng tốt, không bị lem mực.',
-            'image_url': 'https://cdn.duyne.me/books/3cdd9987-0942-4b44-81d7-f537d47e2397.jpg',
+            'image_url': 'https://cdn.diemdoo.me/books/05892fa6-11f9-4677-8fbd-ede3e0641141.jpg',
         'pages': 200,
             'category': 'VAN_PHONG_PHAM'
         },
@@ -907,18 +907,7 @@ if __name__ == '__main__':
             ('user6', 'user6@example.com', 'Vũ Thị F', 'KH006'),
             ('user7', 'user7@example.com', 'Đặng Văn G', 'KH007'),
             ('user8', 'user8@example.com', 'Bùi Thị H', 'KH008'),
-            ('user9', 'user9@example.com', 'Đỗ Văn I', 'KH009'),
-            ('user10', 'user10@example.com', 'Ngô Thị J', 'KH010'),
-            ('user11', 'user11@example.com', 'Dương Văn K', 'KH011'),
-            ('user12', 'user12@example.com', 'Lý Thị L', 'KH012'),
-            ('user13', 'user13@example.com', 'Trịnh Văn M', 'KH013'),
-            ('user14', 'user14@example.com', 'Phan Thị N', 'KH014'),
-            ('user15', 'user15@example.com', 'Võ Văn O', 'KH015'),
-            ('user16', 'user16@example.com', 'Đinh Thị P', 'KH016'),
-            ('user17', 'user17@example.com', 'Lương Văn Q', 'KH017'),
-            ('user18', 'user18@example.com', 'Tạ Thị R', 'KH018'),
-            ('user19', 'user19@example.com', 'Hồ Văn S', 'KH019'),
-            ('user20', 'user20@example.com', 'Mai Thị T', 'KH020'),
+            ('user9', 'user9@example.com', 'Đỗ Văn I', 'KH009')
         ]
         
         # Commit users in batches to avoid large transactions
@@ -1153,12 +1142,22 @@ if __name__ == '__main__':
             'price': 90000,
             'stock': 60,
             'description': 'Bạn hối tiếc vì không nỗ lực hết mình khi còn trẻ, bởi vì bạn không thể có được những gì mình muốn.',
-            'image_url': 'https://cdn.diemdoo.me/books/fe778646-34ff-4d5c-9923-29f5d12ec8d1.jpg',
+            'image_url': 'https://cdn.diemdoo.me/books/a08dba75-37a9-4d66-8469-0b7baabd6f7c.jpg',
             'pages': 268,
             'category': 'SACH_TIENG_VIET'
         },
-        
-        # ===== Continued: Sach Tieng Viet =====
+        {
+            'title': 'Nghĩ Giàu & Làm Giàu',
+            'author': 'Napoleon Hill',
+            'publisher': 'NXB Lao Động',
+            'publish_date': '2019-11-20',
+            'price': 125000,
+            'stock': 35,
+            'description': 'Cuốn sách này đã giúp hàng triệu người trên thế giới đạt được thành công trong cuộc sống.',
+            'image_url': 'https://cdn.diemdoo.me/books/0d596b7f-6f9f-46d4-8e81-b543a685f856.jpg',
+            'pages': 382,
+            'category': 'SACH_TIENG_VIET'
+        },
         {
             'title': 'Cây Cam Ngọt Của Tôi',
             'author': 'José Mauro de Vasconcelos',
@@ -1179,7 +1178,7 @@ if __name__ == '__main__':
             'price': 95000,
             'stock': 55,
             'description': 'Những câu chuyện tuổi thơ dung dị nhưng đầy ắp kỷ niệm của hai anh em Thiều và Tường.',
-            'image_url': 'https://cdn.diemdoo.me/books/23e402c5-67b9-498b-844c-2dc0bf3d7b4d.jpg',
+            'image_url': 'https://cdn.diemdoo.me/books/e8b76d3d-1b87-48b6-b1bf-bb51ca1f9ed2.jpg',
             'pages': 368,
             'category': 'SACH_TIENG_VIET'
         },
@@ -1191,7 +1190,7 @@ if __name__ == '__main__':
             'price': 82000,
             'stock': 52,
             'description': 'Tập truyện ngắn về tuổi thơ với những ký ức đẹp đẽ, những trò chơi và bạn bè thân thiết.',
-            'image_url': 'https://cdn.diemdoo.me/books/2a6cc53e-8f54-4b33-8e03-73d7fcf688dc.jpg',
+            'image_url': 'https://cdn.diemdoo.me/books/c7e565ef-6a89-46b1-a512-6acdfd80bc43.jpg',
             'pages': 312,
             'category': 'SACH_TIENG_VIET'
         },
@@ -1227,7 +1226,7 @@ if __name__ == '__main__':
             'price': 54000,
             'stock': 68,
             'description': 'Truyện ngắn nổi tiếng về tình người trong hoàn cảnh nạn đói 1945.',
-            'image_url': 'https://cdn.diemdoo.me/books/522531ac-f0ba-4b2b-b7d4-b9da155ccfc9.jpg',
+            'image_url': 'https://cdn.diemdoo.me/books/1bf519f9-6307-42a4-b6db-bdff6e0ec2f9.jpg',
             'pages': 88,
             'category': 'SACH_TIENG_VIET'
         },
@@ -1243,6 +1242,18 @@ if __name__ == '__main__':
             'description': 'Câu chuyện về hải tặc Luffy và ước mơ trở thành vua hải tặc.',
             'image_url': 'https://cdn.diemdoo.me/books/4f4766e6-f2a0-40b6-b5d5-3976cd35d0a2.jpg',
             'pages': 192,
+            'category': 'TRUYEN_TRANH'
+        },
+        {
+            'title': 'Doraemon - Tập 1',
+            'author': 'Fujiko F. Fujio',
+            'publisher': 'NXB Kim Đồng',
+            'publish_date': '2020-03-15',
+            'price': 20000,
+            'stock': 120,
+            'description': 'Chú mèo máy đến từ tương lai và những bảo bối kỳ diệu.',
+            'image_url': 'https://cdn.diemdoo.me/books/cf162373-c333-41af-b841-4c2360833b03.png',
+            'pages': 176,
             'category': 'TRUYEN_TRANH'
         },
         {
@@ -1265,7 +1276,7 @@ if __name__ == '__main__':
             'price': 22000,
             'stock': 88,
             'description': 'Cuộc phiêu lưu tìm kiếm bảy viên ngọc rồng của Son Goku.',
-            'image_url': 'https://cdn.diemdoo.me/books/cf162373-c333-41af-b841-4c2360833b03.png',
+            'image_url': 'https://cdn.diemdoo.me/books/2ecf3ea8-6ff8-4ddf-baae-b9bfea961ecc.jpg',
             'pages': 200,
             'category': 'TRUYEN_TRANH'
         },
@@ -1277,7 +1288,7 @@ if __name__ == '__main__':
             'price': 23000,
             'stock': 105,
             'description': 'Thám tử lừng danh Conan và những vụ án bí ẩn.',
-            'image_url': 'https://cdn.diemdoo.me/books/28814cea-c92c-46f5-93c4-2f2673886d6b.jpg',
+            'image_url': 'https://cdn.diemdoo.me/books/9c2e9ed0-c497-4e2b-8248-bcba291b38f0.jpg',
             'pages': 188,
             'category': 'TRUYEN_TRANH'
         },
