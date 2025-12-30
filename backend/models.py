@@ -192,7 +192,7 @@ class Book(db.Model):
     
     # Relationships
     cart_items = db.relationship('Cart', backref='book', lazy=True, cascade='all, delete-orphan')
-    order_items = db.relationship('OrderItem', backref='book', lazy=True)
+    order_items = db.relationship('OrderItem', backref='book', lazy=True, cascade='all, delete-orphan')
     
     def get_sold_count(self):
         """
