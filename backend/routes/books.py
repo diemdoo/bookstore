@@ -1,22 +1,3 @@
-"""
-File: routes/books.py
-
-Mục đích:
-Xử lý các route liên quan đến quản lý sách (CRUD, tìm kiếm, lọc)
-
-Các endpoint trong file này:
-- GET /api/books: Lấy danh sách sách (có pagination, search, filter)
-- POST /api/books: Tạo sách mới (admin only)
-- PUT /api/books/<id>: Cập nhật thông tin sách (admin only)
-- DELETE /api/books/<id>: Xóa sách (admin only)
-- GET /api/books/bestsellers: Lấy danh sách sách bán chạy nhất
-
-Dependencies:
-- models.Book: Model cho bảng books
-- models.OrderItem: Model cho bảng order_items (để tính bestsellers)
-- utils.helpers: admin_required decorator
-- sqlalchemy: Để query và aggregate
-"""
 from flask import Blueprint, request, jsonify
 from models import Book, OrderItem, db
 from utils.helpers import admin_required
@@ -26,29 +7,6 @@ books_bp = Blueprint('books', __name__)
 
 @books_bp.route('/books', methods=['GET'])
 def get_books():
-    """
-    Lấy danh sách sách với pagination, search và filter
-    
-    Flow:
-    1. Lấy các query parameters (page, per_page, search, category, author)
-    2. Tạo query cơ bản từ Book model
-    3. Áp dụng filter search (tìm trong title)
-    4. Áp dụng filter category (lọc theo category)
-    5. Áp dụng filter author (lọc theo author)
-    6. Thực hiện pagination
-    7. Trả về danh sách sách với thông tin pagination
-    
-    Query Parameters:
-    - page (int): Số trang (default: 1)
-    - per_page (int): Số items mỗi trang (default: 12)
-    - search (string): Từ khóa tìm kiếm trong title
-    - category (string): Lọc theo category
-    - author (string): Lọc theo author
-    
-    Returns:
-        - 200: Danh sách sách với pagination info
-        - 500: Lỗi server
-    """
     try:
         # Bước 1: Lấy query parameters
         page = request.args.get('page', 1, type=int)
@@ -92,21 +50,6 @@ def get_books():
 @books_bp.route('/books', methods=['POST'])
 @admin_required
 def create_book():
-    """
-    Tạo sách mới (chỉ admin)
-    
-    Flow:
-    1. Lấy dữ liệu từ request body
-    2. Validate các trường bắt buộc (title, author, category, price, stock)
-    3. Validate định dạng dữ liệu (price >= 0, stock >= 0, độ dài các trường)
-    4. Tạo Book mới trong database
-    5. Trả về thông tin sách đã tạo
-    
-    Returns:
-        - 201: Tạo sách thành công
-        - 400: Dữ liệu không hợp lệ hoặc thiếu trường bắt buộc
-        - 500: Lỗi server
-    """
     try:
         # Bước 1: Lấy dữ liệu từ request
         data = request.get_json()
@@ -181,24 +124,6 @@ def create_book():
 @books_bp.route('/books/<int:book_id>', methods=['PUT'])
 @admin_required
 def update_book(book_id):
-    """
-    Cập nhật thông tin sách (chỉ admin)
-    
-    Flow:
-    1. Lấy book_id từ URL
-    2. Kiểm tra sách có tồn tại không
-    3. Lấy dữ liệu từ request body
-    4. Validate dữ liệu (nếu có)
-    5. Cập nhật các trường được gửi lên
-    6. Lưu vào database
-    7. Trả về thông tin sách đã cập nhật
-    
-    Returns:
-        - 200: Cập nhật thành công
-        - 400: Dữ liệu không hợp lệ
-        - 404: Sách không tồn tại
-        - 500: Lỗi server
-    """
     try:
         # Bước 1 & 2: Kiểm tra sách có tồn tại không
         book = Book.query.get(book_id)
@@ -284,20 +209,6 @@ def update_book(book_id):
 @books_bp.route('/books/<int:book_id>', methods=['DELETE'])
 @admin_required
 def delete_book(book_id):
-    """
-    Xóa sách (chỉ admin)
-    
-    Flow:
-    1. Lấy book_id từ URL
-    2. Kiểm tra sách có tồn tại không
-    3. Xóa sách khỏi database (order_items sẽ tự động xóa nhờ cascade delete)
-    4. Trả về thông báo thành công
-    
-    Returns:
-        - 200: Xóa thành công
-        - 404: Sách không tồn tại
-        - 500: Lỗi server
-    """
     try:
         # Bước 1 & 2: Kiểm tra sách có tồn tại không
         book = Book.query.get(book_id)
@@ -317,24 +228,6 @@ def delete_book(book_id):
 
 @books_bp.route('/books/bestsellers', methods=['GET'])
 def get_bestsellers():
-    """
-    Lấy danh sách sách bán chạy nhất dựa trên số lượng đã bán
-    
-    Flow:
-    1. Lấy limit từ query parameter (default: 10)
-    2. Query database để tính tổng số lượng đã bán của mỗi sách
-    3. Sắp xếp theo số lượng bán giảm dần
-    4. Lấy top N sách
-    5. Nếu chưa có đơn hàng nào, trả về top sách theo ID (fallback)
-    6. Trả về danh sách sách bán chạy
-    
-    Query Parameters:
-    - limit (int): Số lượng sách cần lấy (default: 10)
-    
-    Returns:
-        - 200: Danh sách sách bán chạy
-        - 500: Lỗi server
-    """
     try:
         # Bước 1: Lấy limit từ query parameter
         limit = request.args.get('limit', 10, type=int)

@@ -1,21 +1,3 @@
-"""
-File: routes/auth.py
-
-Mục đích: 
-Xử lý các route liên quan đến authentication (đăng ký, đăng nhập, đăng xuất)
-
-Các endpoint trong file này:
-- POST /api/register: Đăng ký tài khoản mới
-- POST /api/login: Đăng nhập vào hệ thống
-- POST /api/logout: Đăng xuất
-- GET /api/me: Lấy thông tin user hiện tại
-- PUT /api/profile: Cập nhật thông tin profile
-
-Dependencies:
-- models.User: Model cho bảng users
-- utils.helpers: Các hàm helper (hash_password, check_password, validate_email, validate_password)
-- flask.session: Quản lý session
-"""
 from flask import Blueprint, request, jsonify, session
 from models import User, db
 from utils.helpers import hash_password, check_password, validate_email, validate_password, login_required
@@ -24,23 +6,6 @@ auth_bp = Blueprint('auth', __name__)
 
 @auth_bp.route('/register', methods=['POST'])
 def register():
-    """
-    Đăng ký tài khoản mới
-    
-    Flow:
-    1. Nhận dữ liệu từ request (username, email, password, full_name)
-    2. Validate dữ liệu (kiểm tra đầy đủ, email hợp lệ, password >= 6 ký tự)
-    3. Kiểm tra username và email đã tồn tại chưa
-    4. Hash password bằng bcrypt
-    5. Tạo user mới trong database
-    6. Tự động đăng nhập (tạo session)
-    7. Trả về thông tin user (không có password)
-    
-    Returns:
-        - 201: Đăng ký thành công
-        - 400: Dữ liệu không hợp lệ hoặc username/email đã tồn tại
-        - 500: Lỗi server
-    """
     try:
         # Bước 1: Lấy dữ liệu từ request
         data = request.get_json()
@@ -100,25 +65,6 @@ def register():
 
 @auth_bp.route('/login', methods=['POST'])
 def login():
-    """
-    Đăng nhập vào hệ thống (chỉ cho phép customer, không cho phép admin)
-    
-    Flow:
-    1. Nhận username và password từ request
-    2. Validate dữ liệu (không được để trống)
-    3. Tìm user trong database theo username
-    4. Kiểm tra user có phải admin không (nếu là admin thì từ chối)
-    5. Kiểm tra password có khớp không
-    6. Kiểm tra tài khoản có bị khóa không (is_active)
-    7. Tạo session để lưu thông tin đăng nhập
-    8. Trả về thông tin user
-    
-    Returns:
-        - 200: Đăng nhập thành công
-        - 400: Thiếu thông tin
-        - 401: Username/password không đúng, là admin, hoặc tài khoản bị khóa
-        - 500: Lỗi server
-    """
     try:
         # Bước 1: Lấy dữ liệu từ request
         data = request.get_json()
@@ -160,37 +106,12 @@ def login():
 
 @auth_bp.route('/logout', methods=['POST'])
 def logout():
-    """
-    Đăng xuất khỏi hệ thống
-    
-    Flow:
-    1. Xóa tất cả thông tin trong session
-    2. Trả về thông báo thành công
-    
-    Returns:
-        - 200: Đăng xuất thành công
-    """
     # Xóa tất cả thông tin trong session
     session.clear()
     return jsonify({'message': 'Đăng xuất thành công'}), 200
 
 @auth_bp.route('/me', methods=['GET'])
 def get_current_user():
-    """
-    Lấy thông tin user hiện tại (đã đăng nhập)
-    
-    Flow:
-    1. Kiểm tra user đã đăng nhập chưa (có session['user_id'] không)
-    2. Lấy user từ database theo user_id trong session
-    3. Kiểm tra user có tồn tại không
-    4. Trả về thông tin user
-    
-    Returns:
-        - 200: Lấy thông tin thành công
-        - 401: Chưa đăng nhập
-        - 404: User không tồn tại
-        - 500: Lỗi server
-    """
     # Bước 1: Kiểm tra user đã đăng nhập chưa
     if 'user_id' not in session:
         return jsonify({'error': 'Chưa đăng nhập'}), 401
@@ -213,22 +134,6 @@ def get_current_user():
 @auth_bp.route('/profile', methods=['PUT'])
 @login_required
 def update_profile():
-    """
-    Cập nhật thông tin profile của user (full_name, email)
-    
-    Flow:
-    1. Lấy user_id từ session (đã được kiểm tra bởi @login_required)
-    2. Lấy dữ liệu từ request (full_name, email)
-    3. Validate dữ liệu (không được để trống, email hợp lệ)
-    4. Kiểm tra email đã được sử dụng bởi user khác chưa
-    5. Cập nhật thông tin user trong database
-    6. Trả về thông tin user đã cập nhật
-    
-    Returns:
-        - 200: Cập nhật thành công
-        - 400: Dữ liệu không hợp lệ hoặc email đã được sử dụng
-        - 500: Lỗi server
-    """
     try:
         # Bước 1: Lấy user_id từ session
         user_id = session.get('user_id')

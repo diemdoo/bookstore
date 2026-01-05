@@ -34,4 +34,3 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ title, children }) => 
     </SidebarProvider>
   )
 }
-

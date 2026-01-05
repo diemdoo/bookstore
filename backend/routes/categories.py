@@ -1,23 +1,3 @@
-"""
-File: routes/categories.py
-
-Mục đích:
-Xử lý các route liên quan đến quản lý categories và sách theo category
-
-Các endpoint trong file này:
-- GET /api/categories: Lấy danh sách categories (public)
-- GET /api/categories/<id>: Lấy chi tiết category theo ID
-- GET /api/categories/<slug>/books: Lấy danh sách sách theo category slug (có sorting)
-- GET /api/categories/<slug>/books/<book_slug>: Lấy chi tiết sách theo category slug và book slug
-- POST /api/admin/categories: Tạo category mới (admin)
-- PUT /api/admin/categories/<id>: Cập nhật category (admin)
-- DELETE /api/admin/categories/<id>: Xóa category (admin)
-
-Dependencies:
-- models.Category: Model cho bảng categories
-- models.Book: Model cho bảng books
-- utils.helpers: admin_required decorator, generate_slug, generate_unique_slug, generate_category_key, generate_unique_category_key, generate_category_code
-"""
 from flask import Blueprint, request, jsonify
 from models import Category, Book, db
 from utils.helpers import admin_required, generate_slug, generate_unique_slug, generate_category_key, generate_unique_category_key, generate_category_code
@@ -26,23 +6,6 @@ categories_bp = Blueprint('categories', __name__)
 
 @categories_bp.route('/categories', methods=['GET'])
 def get_categories():
-    """
-    Lấy danh sách categories (public)
-    
-    Flow:
-    1. Lấy query parameter include_inactive (default: false)
-    2. Query categories từ database
-    3. Nếu active_only=True: chỉ lấy categories có is_active=True
-    4. Sắp xếp theo display_order và id
-    5. Trả về danh sách categories
-    
-    Query Parameters:
-    - include_inactive (string): 'true' để bao gồm categories không active (default: 'false')
-    
-    Returns:
-        - 200: Danh sách categories
-        - 500: Lỗi server
-    """
     try:
         # Bước 1: Lấy query parameter
         include_inactive = request.args.get('include_inactive', 'false').lower() == 'true'
@@ -64,19 +27,6 @@ def get_categories():
 
 @categories_bp.route('/categories/<int:category_id>', methods=['GET'])
 def get_category(category_id):
-    """
-    Lấy chi tiết category
-    
-    Flow:
-    1. Query category theo category_id
-    2. Kiểm tra category có tồn tại không
-    3. Trả về thông tin category
-    
-    Returns:
-        - 200: Chi tiết category
-        - 404: Category không tồn tại
-        - 500: Lỗi server
-    """
     try:
         # Bước 1: Query category
         category = Category.query.get(category_id)
@@ -93,27 +43,6 @@ def get_category(category_id):
 
 @categories_bp.route('/categories/<slug>/books', methods=['GET'])
 def get_category_books(slug):
-    """
-    Lấy danh sách sách theo category slug (RESTful endpoint)
-    
-    Flow:
-    1. Tìm category theo slug
-    2. Kiểm tra category có tồn tại không
-    3. Lấy query parameters (page, per_page, sort_by)
-    4. Query books theo category key với sorting
-    5. Áp dụng pagination
-    6. Trả về danh sách sách với pagination info
-    
-    Query Parameters:
-    - page (int): Số trang (default: 1)
-    - per_page (int): Số items mỗi trang (default: 12)
-    - sort_by (str): Sắp xếp (newest|price_asc|price_desc|bestseller, default: newest)
-    
-    Returns:
-        - 200: Danh sách sách với pagination
-        - 404: Category không tồn tại
-        - 500: Lỗi server
-    """
     try:
         # Bước 1-2: Tìm category theo slug
         category = Category.query.filter_by(slug=slug).first()
@@ -174,22 +103,6 @@ def get_category_books(slug):
 
 @categories_bp.route('/categories/<slug>/books/<book_slug>', methods=['GET'])
 def get_category_book(slug, book_slug):
-    """
-    Lấy chi tiết sách theo category slug và book slug (RESTful endpoint)
-    
-    Flow:
-    1. Tìm category theo slug
-    2. Kiểm tra category có tồn tại không
-    3. Query book theo book_slug và category key
-    4. Kiểm tra book có tồn tại không
-    5. Kiểm tra book có thuộc category đúng không
-    6. Trả về thông tin sách
-    
-    Returns:
-        - 200: Chi tiết sách
-        - 404: Category không tồn tại, sách không tồn tại hoặc không thuộc category này
-        - 500: Lỗi server
-    """
     try:
         # Bước 1-2: Tìm category theo slug
         category = Category.query.filter_by(slug=slug).first()
@@ -215,22 +128,6 @@ def get_category_book(slug, book_slug):
 @categories_bp.route('/admin/categories', methods=['POST'])
 @admin_required
 def create_category():
-    """
-    Tạo category mới (chỉ admin)
-    
-    Flow:
-    1. Lấy dữ liệu từ request body
-    2. Validate các trường bắt buộc (name)
-    3. Tự động generate key và slug từ name
-    4. Đảm bảo slug unique (auto-append số nếu trùng)
-    5. Tạo category mới trong database
-    6. Trả về thông tin category đã tạo
-    
-    Returns:
-        - 201: Tạo category thành công
-        - 400: Dữ liệu không hợp lệ
-        - 500: Lỗi server
-    """
     try:
         # Bước 1: Lấy dữ liệu từ request
         data = request.get_json()
@@ -296,25 +193,6 @@ def create_category():
 @categories_bp.route('/admin/categories/<int:category_id>', methods=['PUT'])
 @admin_required
 def update_category(category_id):
-    """
-    Cập nhật category (chỉ admin)
-    
-    Flow:
-    1. Lấy category_id từ URL
-    2. Kiểm tra category có tồn tại không
-    3. Lấy dữ liệu từ request body
-    4. Validate name nếu có
-    5. Tự động regenerate key và slug nếu name thay đổi
-    6. Cập nhật các trường được gửi lên
-    7. Lưu vào database
-    8. Trả về thông tin category đã cập nhật
-    
-    Returns:
-        - 200: Cập nhật thành công
-        - 400: Dữ liệu không hợp lệ
-        - 404: Category không tồn tại
-        - 500: Lỗi server
-    """
     try:
         # Bước 1 & 2: Kiểm tra category có tồn tại không
         category = Category.query.get(category_id)
@@ -365,20 +243,6 @@ def update_category(category_id):
 @categories_bp.route('/admin/categories/<int:category_id>', methods=['DELETE'])
 @admin_required
 def delete_category(category_id):
-    """
-    Xóa category (chỉ admin)
-    
-    Flow:
-    1. Lấy category_id từ URL
-    2. Kiểm tra category có tồn tại không
-    3. Xóa category khỏi database
-    4. Trả về thông báo thành công
-    
-    Returns:
-        - 200: Xóa thành công
-        - 404: Category không tồn tại
-        - 500: Lỗi server
-    """
     try:
         # Bước 1 & 2: Kiểm tra category có tồn tại không
         category = Category.query.get(category_id)

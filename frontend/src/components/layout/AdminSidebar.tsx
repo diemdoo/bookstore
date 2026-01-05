@@ -19,9 +19,6 @@ export const AdminSidebar: React.FC = () => {
     { path: '/admin/statistics', label: 'Thống Kê', icon: BarChart3, moderatorOnly: true },
   ]
   
-  // Filter nav items: 
-  // - moderator và editor không thấy menu "Quản Lý Quản Trị Viên"
-  // - editor không thấy "Quản Lý Hóa Đơn", "Quản Lý Khách Hàng" và "Thống Kê"
   const navItems = allNavItems.filter(item => {
     if (item.adminOnly && (user?.role === 'moderator' || user?.role === 'editor')) {
       return false

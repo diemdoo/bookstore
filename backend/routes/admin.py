@@ -1,31 +1,3 @@
-"""
-File: routes/admin.py
-
-Mục đích:
-Xử lý các route liên quan đến quản lý admin (users, orders, statistics)
-
-Các endpoint trong file này:
-- POST /api/admin/login: Đăng nhập admin
-- GET /api/admin/users: Lấy danh sách users (có query param role để filter)
-    - role=customer: Chỉ admin
-  - Không có role: Chỉ super admin (admin)
-- POST /api/admin/users: Tạo admin mới (chỉ super admin)
-- PUT /api/admin/users/<id>: Cập nhật thông tin admin (chỉ super admin)
-- PUT /api/admin/users/<id>/status: Cập nhật trạng thái user
-  - Nếu user là customer: Chỉ admin/moderator
-  - Nếu user là admin/editor: Chỉ super admin
-- GET /api/admin/orders: Lấy tất cả đơn hàng (chỉ admin, không cho editor)
-- PUT /api/admin/orders/<id>/status: Cập nhật trạng thái đơn hàng
-- GET /api/admin/statistics: Lấy thống kê (chỉ admin)
-
-Dependencies:
-- models.User: Model cho bảng users
-- models.Order: Model cho bảng orders
-- models.OrderItem: Model cho bảng order_items
-- models.Book: Model cho bảng books
-- utils.helpers: admin_required, moderator_required, super_admin_required decorators, check_password, hash_password, validate_email
-- sqlalchemy: Để query và aggregate
-"""
 from flask import Blueprint, request, jsonify, session
 from models import User, Order, OrderItem, Book, db
 from utils.helpers import admin_required, super_admin_required, moderator_required, check_password, hash_password, validate_email
@@ -36,25 +8,6 @@ admin_bp = Blueprint('admin', __name__)
 
 @admin_bp.route('/admin/login', methods=['POST'])
 def admin_login():
-    """
-    Đăng nhập admin (chỉ cho phép tài khoản có role='admin')
-    
-    Flow:
-    1. Nhận username và password từ request
-    2. Validate dữ liệu (không được để trống)
-    3. Tìm user trong database theo username
-    4. Kiểm tra user có role='admin' không
-    5. Kiểm tra password có khớp không
-    6. Kiểm tra tài khoản có bị khóa không (is_active)
-    7. Tạo session để lưu thông tin đăng nhập
-    8. Trả về thông tin user
-    
-    Returns:
-        - 200: Đăng nhập thành công
-        - 400: Thiếu thông tin
-        - 401: Username/password không đúng, không phải admin, hoặc tài khoản bị khóa
-        - 500: Lỗi server
-    """
     try:
         # Bước 1: Lấy dữ liệu từ request
         data = request.get_json()
@@ -106,30 +59,6 @@ def admin_login():
 
 @admin_bp.route('/admin/users', methods=['GET'])
 def get_users():
-    """
-    Lấy danh sách users (admin) với pagination
-    
-    Query Parameters:
-        - role (optional): Filter theo role ('customer', 'admin')
-                          Nếu không có, mặc định trả về admin (chỉ super admin)
-        - page (int): Số trang (default: 1)
-        - per_page (int): Số items mỗi trang (default: 20)
-    
-    Flow:
-    1. Lấy query parameters (role, page, per_page)
-    2. Kiểm tra quyền truy cập:
-       - Nếu role=customer: chỉ admin được phép
-       - Nếu không có role: chỉ super admin được phép (super_admin_required)
-    3. Query users theo role filter
-    4. Sắp xếp theo created_at giảm dần (mới nhất trước)
-    5. Thực hiện pagination
-    6. Trả về danh sách users với thông tin pagination
-    
-    Returns:
-        - 200: Danh sách users với pagination info
-        - 403: Không có quyền truy cập
-        - 500: Lỗi server
-    """
     try:
         # Bước 1: Lấy query parameters
         role_filter = request.args.get('role', '').strip()
@@ -172,23 +101,6 @@ def get_users():
 @admin_bp.route('/admin/users', methods=['POST'])
 @super_admin_required
 def create_admin_user():
-    """
-    Tạo admin user mới (chỉ super admin)
-    
-    Flow:
-    1. Lấy dữ liệu từ request (username, email, password, full_name)
-    2. Validate dữ liệu
-    3. Kiểm tra username và email đã tồn tại chưa
-    4. Hash password
-    5. Tạo user mới với role='admin'
-    6. Lưu vào database
-    7. Trả về thông tin user
-    
-    Returns:
-        - 201: Tạo thành công
-        - 400: Dữ liệu không hợp lệ hoặc username/email đã tồn tại
-        - 500: Lỗi server
-    """
     try:
         # Bước 1: Lấy dữ liệu từ request
         data = request.get_json()
@@ -247,24 +159,6 @@ def create_admin_user():
 @admin_bp.route('/admin/users/<int:user_id>', methods=['PUT'])
 @super_admin_required
 def update_admin_user(user_id):
-    """
-    Cập nhật thông tin admin user (chỉ super admin)
-    
-    Flow:
-    1. Lấy dữ liệu từ request (email, full_name, password optional)
-    2. Validate dữ liệu
-    3. Kiểm tra user có tồn tại không
-    4. Kiểm tra email không trùng với user khác (trừ user hiện tại)
-    5. Kiểm tra user phải là admin
-    6. Update user và commit
-    7. Trả về thông tin user đã cập nhật
-    
-    Returns:
-        - 200: Cập nhật thành công
-        - 400: Dữ liệu không hợp lệ hoặc email đã tồn tại
-        - 404: User không tồn tại
-        - 500: Lỗi server
-    """
     try:
         # Bước 1: Lấy dữ liệu từ request
         data = request.get_json()
@@ -320,32 +214,6 @@ def update_admin_user(user_id):
 
 @admin_bp.route('/admin/users/<int:user_id>/status', methods=['PUT'])
 def update_user_status(user_id):
-    """
-    Khóa/mở tài khoản user
-    
-    Quyền truy cập:
-    - Nếu user là customer: Chỉ Admin được phép
-    - Nếu user là admin: Chỉ Super Admin được phép
-    
-    Flow:
-    1. Kiểm tra quyền đăng nhập
-    2. Query user từ database
-    3. Kiểm tra user có tồn tại không
-    4. Kiểm tra quyền truy cập dựa trên role của user
-    5. Lấy is_active từ request body
-    6. Validate is_active không None
-    7. Validate không cho phép vô hiệu hóa admin duy nhất
-    8. Cập nhật is_active
-    9. Lưu vào database
-    10. Trả về thông tin user đã cập nhật
-    
-    Returns:
-        - 200: Cập nhật thành công
-        - 400: Thiếu trường is_active hoặc validation lỗi
-        - 403: Không có quyền truy cập
-        - 404: User không tồn tại
-        - 500: Lỗi server
-    """
     try:
         # Bước 1: Kiểm tra quyền đăng nhập
         if 'user_id' not in session:
@@ -403,24 +271,6 @@ def update_user_status(user_id):
 @admin_bp.route('/admin/orders', methods=['GET'])
 @moderator_required
 def get_all_orders():
-    """
-    Lấy tất cả đơn hàng (admin) với pagination
-    
-    Query Parameters:
-        - page (int): Số trang (default: 1)
-        - per_page (int): Số items mỗi trang (default: 20)
-    
-    Flow:
-    1. Lấy query parameters (page, per_page)
-    2. Query orders từ database với pagination
-    3. Load thông tin user (JOIN) để hiển thị thông tin khách hàng
-    4. Sắp xếp theo created_at giảm dần (mới nhất trước)
-    5. Trả về danh sách orders với thông tin pagination (mỗi order đã có order_items từ relationship)
-    
-    Returns:
-        - 200: Danh sách orders với pagination info
-        - 500: Lỗi server
-    """
     try:
         # Bước 1: Lấy query parameters
         page = request.args.get('page', 1, type=int)
@@ -445,28 +295,6 @@ def get_all_orders():
 @admin_bp.route('/admin/orders/<int:order_id>/status', methods=['PUT'])
 @moderator_required
 def update_order_status(order_id):
-    """
-    Cập nhật trạng thái đơn hàng và payment_status (admin)
-    
-    Flow:
-    1. Lấy order_id từ URL
-    2. Lấy status và payment_status từ request body
-    3. Validate status và payment_status (nếu có)
-    4. Query order từ database
-    5. Kiểm tra order có tồn tại không
-    6. Cập nhật status và/hoặc payment_status
-    7. Lưu vào database
-    8. Trả về thông tin order đã cập nhật
-    
-    Valid status values: pending, confirmed, cancelled, completed
-    Valid payment_status values: pending, paid
-    
-    Returns:
-        - 200: Cập nhật thành công
-        - 400: Status không hợp lệ
-        - 404: Order không tồn tại
-        - 500: Lỗi server
-    """
     try:
         # Bước 1-2: Lấy dữ liệu
         data = request.get_json()
@@ -512,31 +340,6 @@ def update_order_status(order_id):
 @admin_bp.route('/admin/statistics', methods=['GET'])
 @moderator_required
 def get_statistics():
-    """
-    Lấy thống kê tổng quan (admin)
-    
-    Quyền truy cập: Chỉ Admin được phép
-    
-    Flow:
-    1. Tính tổng doanh thu từ các đơn hàng đã hoàn thành và đã thanh toán
-    2. Đếm tổng số đơn hàng
-    3. Đếm số đơn hàng theo từng trạng thái (pending, confirmed, completed, cancelled)
-    4. Query top 10 sách bán chạy nhất (dựa trên số lượng đã bán trong các đơn đã hoàn thành)
-    5. Trả về object thống kê
-    
-    Returns:
-        - 200: Object thống kê với các thông tin:
-            - total_revenue: Tổng doanh thu
-            - total_orders: Tổng số đơn hàng
-            - pending_orders: Số đơn chờ xác nhận
-            - confirmed_orders: Số đơn đã xác nhận
-            - completed_orders: Số đơn đã hoàn thành
-            - cancelled_orders: Số đơn đã hủy
-            - orders_by_status: Dict số đơn theo từng status
-            - top_books: Top 10 sách bán chạy
-        - 403: Không có quyền truy cập
-        - 500: Lỗi server
-    """
     try:
         # Bước 1: Tính tổng doanh thu (chỉ tính đơn đã hoàn thành và đã thanh toán)
         total_revenue = db.session.query(func.sum(Order.total_amount)).filter(

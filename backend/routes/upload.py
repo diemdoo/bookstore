@@ -1,16 +1,3 @@
-"""
-File: routes/upload.py
-
-Mục đích:
-Xử lý upload ảnh lên Cloudflare R2 storage
-
-Các endpoint trong file này:
-- POST /api/admin/upload: Upload ảnh lên Cloudflare R2 (admin only)
-
-Dependencies:
-- utils.storage: storage_service để upload file lên R2
-- utils.helpers: admin_required decorator
-"""
 from flask import Blueprint, request, jsonify
 from utils.helpers import admin_required
 from utils.storage import storage_service
@@ -20,25 +7,6 @@ upload_bp = Blueprint('upload', __name__)
 @upload_bp.route('/admin/upload', methods=['POST'])
 @admin_required
 def upload_image():
-    """
-    Upload ảnh lên Cloudflare R2 (admin only)
-    
-    Flow:
-    1. Kiểm tra có file trong request không
-    2. Kiểm tra file có tên không (không rỗng)
-    3. Validate kích thước file (tối đa 5MB)
-    4. Lấy folder từ query parameter (default: 'books')
-    5. Upload file lên Cloudflare R2
-    6. Trả về URL của file đã upload
-    
-    Query Parameters:
-    - folder (string): Thư mục lưu file trên R2 (default: 'books')
-    
-    Returns:
-        - 200: Upload thành công, trả về URL
-        - 400: Không có file, file rỗng, hoặc file quá lớn
-        - 500: Lỗi server
-    """
     try:
         # Bước 1: Kiểm tra có file không
         if 'file' not in request.files:

@@ -1,18 +1,3 @@
-"""
-File: routes/chatbot.py
-
-Mục đích:
-Xử lý chatbot thông minh với Google Gemini Pro API, kết hợp với FAQ database.
-Chatbot có thể hiểu context về bookstore và trả lời khách hàng một cách tự nhiên.
-
-Các endpoint trong file này:
-- POST /api/chatbot: Xử lý câu hỏi từ chatbot và trả về câu trả lời (FAQ + Gemini)
-
-Dependencies:
-- google.genai: Google Gen AI SDK
-- models.Book, models.Category: Để lấy thông tin từ database
-- config.Config: Để lấy GEMINI_API_KEY
-"""
 from flask import Blueprint, request, jsonify
 from google import genai
 from google.genai import types
@@ -31,13 +16,6 @@ logger = logging.getLogger(__name__)
 _genai_client = None
 
 def get_genai_client():
-    """
-    Lazy initialization của Gemini client
-    Tái sử dụng client across requests để tối ưu performance
-    
-    Returns:
-        genai.Client: Gemini client instance, hoặc None nếu không có API key
-    """
     global _genai_client
     
     if _genai_client is None:
@@ -106,9 +84,11 @@ def get_bookstore_context():
                 bestsellers_list = []
                 for idx, (book, total_sold) in enumerate(bestsellers, 1):
                     sold_count = int(total_sold) if total_sold else 0
-                    bestsellers_list.append(f"{idx}. {book.title} - {book.author} (Đã bán: {sold_count})")
+                    # Format với thông tin đầy đủ và nổi bật hơn
+                    bestsellers_list.append(f"{idx}. {book.title} - {book.author} (Đã bán: {sold_count} cuốn)")
                 
-                bestsellers_text = "\n\nTop 10 sách bán chạy nhất:\n" + "\n".join(bestsellers_list)
+                # Format header rõ ràng và nổi bật hơn
+                bestsellers_text = "\n\n=== TOP 10 SÁCH BÁN CHẠY NHẤT (BESTSELLERS) ===\n" + "\n".join(bestsellers_list) + "\n"
         except Exception as e:
             logger.warning(f"[CHATBOT] Failed to query bestsellers: {str(e)}")
             # Continue without bestsellers if query fails
@@ -166,44 +146,30 @@ Cửa hàng có {total_books} cuốn sách trong các danh mục sau:
         logger.error(f"[CHATBOT] Error in get_bookstore_context: {str(e)}")
         return "\nCửa hàng sách trực tuyến với nhiều danh mục sách đa dạng."
 
-def detect_and_get_book_info(question):
-    """
-    Detect tên sách từ câu hỏi và query thông tin chi tiết sách
-    
-    Flow:
-    1. Sử dụng Gemini để extract tên sách từ question (nếu có)
-    2. Search trong database (fuzzy match với title)
-    3. Nếu tìm thấy:
-       - Query thông tin chi tiết sách
-       - Query sách tương tự (same author, same category, top 3-5)
-       - Return book info dict
-    4. Nếu không tìm thấy: return None
-    
-    Parameters:
-        question (str): Câu hỏi của người dùng
-    
-    Returns:
-        dict: Thông tin sách và sách tương tự, hoặc None nếu không tìm thấy
-    """
+def detect_book_info_from_question(question):
     try:
-        # Bước 1: Sử dụng Gemini để extract tên sách từ question
         client = get_genai_client()
         if not client:
-            logger.warning("[CHATBOT] Cannot detect book - Gemini client not available")
+            logger.warning("[CHATBOT] Cannot detect book info - Gemini client not available")
             return None
         
-        # Prompt để extract tên sách
-        extract_prompt = f"""Bạn là một hệ thống extract thông tin. Nhiệm vụ của bạn là tìm tên sách trong câu hỏi sau đây.
+        # Prompt để extract cả 3 loại thông tin
+        extract_prompt = f"""Bạn là một hệ thống extract thông tin. Nhiệm vụ của bạn là tìm các thông tin sau trong câu hỏi:
 
 Câu hỏi: "{question}"
 
-Hãy trả lời CHỈ tên sách (nếu có), không thêm gì khác. Nếu không có tên sách cụ thể, trả lời "KHONG".
+Hãy extract và trả về JSON format với các trường sau:
+- book_title: Tên sách cụ thể (nếu có), nếu không có thì để null
+- author_name: Tên tác giả (nếu có), nếu không có thì để null  
+- category_name: Tên danh mục sách (nếu có), nếu không có thì để null
 
 Ví dụ:
-- "Sách Harry Potter có hay không?" -> "Harry Potter"
-- "Giới thiệu về Đắc Nhân Tâm" -> "Đắc Nhân Tâm"
-- "Sách nào bán chạy nhất?" -> "KHONG"
-"""
+- "Sách Harry Potter có hay không?" -> {{"book_title": "Harry Potter", "author_name": null, "category_name": null}}
+- "Tôi muốn đọc sách của tác giả Nguyễn Nhật Ánh" -> {{"book_title": null, "author_name": "Nguyễn Nhật Ánh", "category_name": null}}
+- "Sách truyện tranh nào hay?" -> {{"book_title": null, "author_name": null, "category_name": "Truyện Tranh"}}
+- "Sách nào bán chạy nhất?" -> {{"book_title": null, "author_name": null, "category_name": null}}
+
+Chỉ trả về JSON, không thêm text nào khác."""
         
         try:
             response = client.models.generate_content(
@@ -212,94 +178,222 @@ Ví dụ:
             )
             
             if response and response.text:
-                book_title = response.text.strip()
-                # Loại bỏ dấu ngoặc kép nếu có
-                book_title = book_title.strip('"').strip("'").strip()
+                import json
+                response_text = response.text.strip()
+                # Loại bỏ markdown code blocks nếu có
+                if response_text.startswith('```'):
+                    # Tìm và extract JSON từ code block
+                    lines = response_text.split('\n')
+                    json_lines = [line for line in lines if not line.strip().startswith('```')]
+                    response_text = '\n'.join(json_lines)
                 
-                if book_title.upper() == "KHONG" or not book_title:
-                    logger.info("[CHATBOT] No book title detected in question")
+                # Parse JSON
+                try:
+                    extracted_info = json.loads(response_text)
+                    logger.info(f"[CHATBOT] Extracted info: {extracted_info}")
+                    return extracted_info
+                except json.JSONDecodeError as e:
+                    logger.warning(f"[CHATBOT] Failed to parse JSON: {str(e)}, response: {response_text}")
                     return None
-                
-                logger.info(f"[CHATBOT] Detected book title: {book_title}")
             else:
                 return None
         except Exception as e:
-            logger.warning(f"[CHATBOT] Failed to extract book title: {str(e)}")
+            logger.warning(f"[CHATBOT] Failed to extract book info: {str(e)}")
             return None
-        
-        # Bước 2: Search trong database (fuzzy match với title)
-        # Tìm sách có title chứa book_title
+            
+    except Exception as e:
+        logger.error(f"[CHATBOT] Error in detect_book_info_from_question: {str(e)}")
+        return None
+
+def search_books_by_author(author_name):
+    try:
         books = Book.query.filter(
-            Book.title.ilike(f'%{book_title}%')
+            Book.author.ilike(f'%{author_name}%')
+        ).all()
+        logger.info(f"[CHATBOT] Found {len(books)} books by author: {author_name}")
+        return books
+    except Exception as e:
+        logger.warning(f"[CHATBOT] Failed to search by author: {str(e)}")
+        return []
+
+def search_books_by_category(category_name):
+    try:
+        # Tìm category theo name (fuzzy match)
+        categories = Category.query.filter(
+            Category.name.ilike(f'%{category_name}%'),
+            Category.is_active == True
         ).all()
         
-        if not books:
-            logger.info(f"[CHATBOT] No book found matching: {book_title}")
+        if not categories:
+            logger.info(f"[CHATBOT] No category found matching: {category_name}")
+            return []
+        
+        # Lấy category đầu tiên và search books
+        category = categories[0]
+        books = Book.query.filter(
+            Book.category == category.key
+        ).all()
+        logger.info(f"[CHATBOT] Found {len(books)} books in category: {category.name}")
+        return books
+    except Exception as e:
+        logger.warning(f"[CHATBOT] Failed to search by category: {str(e)}")
+        return []
+
+def detect_and_get_book_info(question):
+    try:
+        # Bước 1: Extract thông tin từ question
+        extracted_info = detect_book_info_from_question(question)
+        if not extracted_info:
             return None
         
-        # Lấy sách đầu tiên (có thể cải thiện bằng cách tính điểm khớp)
-        book = books[0]
-        logger.info(f"[CHATBOT] Found book: {book.title} (ID: {book.id})")
+        book_title = extracted_info.get('book_title')
+        author_name = extracted_info.get('author_name')
+        category_name = extracted_info.get('category_name')
         
-        # Bước 3: Query thông tin chi tiết sách
-        sold_count = book.get_sold_count()
-        category = Category.query.filter_by(key=book.category).first()
-        category_name = category.name if category else book.category
+        # Bước 2: Search theo priority (title > author > category)
+        books = []
+        search_type = None
         
-        # Query sách tương tự (same author hoặc same category, top 5, loại trừ sách hiện tại)
-        similar_books = []
-        try:
-            # Sách cùng tác giả
-            same_author_books = Book.query.filter(
-                Book.author == book.author,
-                Book.id != book.id
-            ).limit(3).all()
+        if book_title:
+            # Search theo title (ưu tiên cao nhất)
+            books = Book.query.filter(
+                Book.title.ilike(f'%{book_title}%')
+            ).all()
+            if books:
+                search_type = 'title'
+                logger.info(f"[CHATBOT] Found {len(books)} books by title: {book_title}")
+        
+        if not books and author_name:
+            # Search theo author
+            books = search_books_by_author(author_name)
+            if books:
+                search_type = 'author'
+        
+        if not books and category_name:
+            # Search theo category
+            books = search_books_by_category(category_name)
+            if books:
+                search_type = 'category'
+                # Lấy category name chính xác
+                category = Category.query.filter_by(key=books[0].category).first()
+                if category:
+                    category_name = category.name
+        
+        if not books:
+            logger.info("[CHATBOT] No books found matching any criteria")
+            return None
+        
+        # Bước 3: Format kết quả
+        # Nếu chỉ có 1 sách hoặc search theo title → format như single book
+        if len(books) == 1 or search_type == 'title':
+            book = books[0]
+            sold_count = book.get_sold_count()
+            category = Category.query.filter_by(key=book.category).first()
+            category_name_result = category.name if category else book.category
             
-            # Sách cùng category (loại trừ sách đã có trong same_author_books)
-            same_author_ids = [b.id for b in same_author_books]
-            same_category_query = Book.query.filter(
-                Book.category == book.category,
-                Book.id != book.id
-            )
-            if same_author_ids:
-                same_category_query = same_category_query.filter(~Book.id.in_(same_author_ids))
-            same_category_books = same_category_query.limit(2).all()
+            # Query sách tương tự
+            similar_books = []
+            try:
+                same_author_books = Book.query.filter(
+                    Book.author == book.author,
+                    Book.id != book.id
+                ).limit(3).all()
+                
+                same_author_ids = [b.id for b in same_author_books]
+                same_category_query = Book.query.filter(
+                    Book.category == book.category,
+                    Book.id != book.id
+                )
+                if same_author_ids:
+                    same_category_query = same_category_query.filter(~Book.id.in_(same_author_ids))
+                same_category_books = same_category_query.limit(2).all()
+                
+                for similar_book in same_author_books + same_category_books:
+                    similar_sold = similar_book.get_sold_count()
+                    similar_books.append({
+                        'book': similar_book,
+                        'sold': similar_sold
+                    })
+            except Exception as e:
+                logger.warning(f"[CHATBOT] Failed to query similar books: {str(e)}")
             
-            # Kết hợp và tính sold count
-            for similar_book in same_author_books + same_category_books:
-                similar_sold = similar_book.get_sold_count()
-                similar_books.append({
-                    'book': similar_book,
-                    'sold': similar_sold
+            return {
+                'book': book,
+                'sold_count': sold_count,
+                'category_name': category_name_result,
+                'similar_books': similar_books,
+                'search_type': search_type
+            }
+        else:
+            # Nhiều sách (author hoặc category) → return list
+            books_with_sold = []
+            for book in books[:10]:  # Limit 10 books
+                sold_count = book.get_sold_count()
+                books_with_sold.append({
+                    'book': book,
+                    'sold': sold_count
                 })
-        except Exception as e:
-            logger.warning(f"[CHATBOT] Failed to query similar books: {str(e)}")
-        
-        # Return book info dict
-        return {
-            'book': book,
-            'sold_count': sold_count,
-            'category_name': category_name,
-            'similar_books': similar_books
-        }
+            
+            result = {
+                'books': books_with_sold,
+                'search_type': search_type,
+                'count': len(books_with_sold)
+            }
+            
+            # Thêm category_name nếu search theo category
+            if search_type == 'category' and category_name:
+                result['category_name'] = category_name
+            
+            return result
         
     except Exception as e:
         logger.error(f"[CHATBOT] Error in detect_and_get_book_info: {str(e)}")
         return None
 
 def format_book_context(book_info):
-    """
-    Format thông tin sách thành text dễ đọc cho AI
-    
-    Parameters:
-        book_info (dict): Thông tin sách từ detect_and_get_book_info()
-    
-    Returns:
-        str: Formatted text về thông tin sách
-    """
     if not book_info:
         return ""
     
+    search_type = book_info.get('search_type', 'title')
+    
+    # Nếu là multiple books (author hoặc category search)
+    if 'books' in book_info:
+        books_list = book_info['books']
+        count = book_info.get('count', len(books_list))
+        
+        if search_type == 'author':
+            author_name = books_list[0]['book'].author if books_list else 'Unknown'
+            context = f"\n[Danh sách sách của tác giả {author_name}]:\n"
+            for idx, item in enumerate(books_list, 1):
+                book = item['book']
+                sold_count = item['sold']
+                context += f"{idx}. {book.title} - {book.author} (Giá: {float(book.price):,.0f} VNĐ, Đã bán: {sold_count} cuốn)\n"
+                if book.description:
+                    context += f"   Mô tả: {book.description[:100]}...\n"
+            context += f"\nTổng cộng: {count} cuốn sách của tác giả {author_name}\n"
+        
+        elif search_type == 'category':
+            category_name = book_info.get('category_name', 'Unknown')
+            context = f"\n[Danh sách sách trong danh mục {category_name}]:\n"
+            for idx, item in enumerate(books_list, 1):
+                book = item['book']
+                sold_count = item['sold']
+                context += f"{idx}. {book.title} - {book.author} (Giá: {float(book.price):,.0f} VNĐ, Đã bán: {sold_count} cuốn)\n"
+                if book.description:
+                    context += f"   Mô tả: {book.description[:100]}...\n"
+            context += f"\nTổng cộng: {count} cuốn sách trong danh mục {category_name}\n"
+        
+        else:
+            # Fallback
+            context = f"\n[Danh sách sách]:\n"
+            for idx, item in enumerate(books_list, 1):
+                book = item['book']
+                sold_count = item['sold']
+                context += f"{idx}. {book.title} - {book.author} (Đã bán: {sold_count} cuốn)\n"
+        
+        return context
+    
+    # Single book (title search hoặc single result)
     book = book_info['book']
     sold_count = book_info['sold_count']
     category_name = book_info['category_name']
@@ -330,22 +424,6 @@ Sách: {book.title}
     return context
 
 def build_system_prompt(question=None):
-    """
-    Tạo system prompt cho Gemini với context về bookstore và thông tin sách cụ thể (nếu có)
-    
-    Flow:
-    1. Lấy bookstore context từ database
-    2. Nếu có question, detect và lấy thông tin sách cụ thể
-    3. Format thông tin sách (nếu có)
-    4. Tạo system prompt với instructions cải thiện về đánh giá sách
-    5. Trả về system prompt hoàn chỉnh
-    
-    Parameters:
-        question (str, optional): Câu hỏi của người dùng để detect sách
-    
-    Returns:
-        str: System prompt cho Gemini
-    """
     # Bước 1: Lấy context từ database
     bookstore_context = get_bookstore_context()
     
@@ -355,7 +433,15 @@ def build_system_prompt(question=None):
         book_info = detect_and_get_book_info(question)
         if book_info:
             book_context = format_book_context(book_info)
-            logger.info(f"[CHATBOT] Book context added for: {book_info['book'].title}")
+            # Log phù hợp cho từng loại search
+            if 'book' in book_info:
+                logger.info(f"[CHATBOT] Book context added for: {book_info['book'].title}")
+            elif 'books' in book_info:
+                search_type = book_info.get('search_type', 'unknown')
+                count = book_info.get('count', 0)
+                logger.info(f"[CHATBOT] Book context added: {count} books (search_type: {search_type})")
+            else:
+                logger.info("[CHATBOT] Book context added (unknown format)")
     
     # Bước 3-4: Tạo system prompt với instructions cải thiện
     system_prompt = f"""Bạn là trợ lý AI thân thiện của một cửa hàng sách trực tuyến. Nhiệm vụ của bạn là:
@@ -369,6 +455,22 @@ def build_system_prompt(question=None):
 Thông tin về cửa hàng:
 {bookstore_context}
 {book_context}
+
+=== HƯỚNG DẪN TRẢ LỜI VỀ BESTSELLERS/SÁCH BÁN CHẠY ===
+Khi khách hàng hỏi về bestsellers hoặc sách bán chạy với các từ khóa sau:
+- "best seller sách" hoặc "bestseller"
+- "sách bán chạy nhất" hoặc "sách bán chạy"
+- "sách nào bán chạy" hoặc "sách bán chạy là gì"
+- "top sách bán chạy" hoặc "top sách"
+- "sách hot" hoặc "sách nổi tiếng"
+- "sách được yêu thích nhất"
+
+Hãy:
+1. Liệt kê danh sách từ "TOP 10 SÁCH BÁN CHẠY NHẤT (BESTSELLERS)" trong thông tin cửa hàng
+2. Bao gồm đầy đủ: số thứ tự, tên sách, tác giả và số lượng đã bán
+3. Giải thích ngắn gọn về lý do sách này bán chạy (dựa trên số lượng đã bán và thông tin có sẵn)
+4. Gợi ý khách hàng có thể xem chi tiết từng cuốn sách trên website
+5. Nếu khách hàng hỏi về một cuốn sách cụ thể trong danh sách bestseller, hãy cung cấp thông tin chi tiết hơn
 
 Khi khách hàng hỏi về chất lượng sách, bạn có thể đánh giá dựa trên:
 1. Mô tả sách (description) - phân tích nội dung, thể loại, đối tượng độc giả phù hợp
@@ -391,21 +493,6 @@ Hãy trả lời một cách thân thiện, chuyên nghiệp và hữu ích. N�
     return system_prompt
 
 def query_gemini(question, system_prompt):
-    """
-    Gọi Gemini API để lấy câu trả lời (sử dụng new google-genai library)
-    
-    Flow:
-    1. Lấy Gemini client (lazy initialization)
-    2. Gọi generate_content với model gemini-2.5-flash và system instruction
-    3. Trả về text response
-    
-    Parameters:
-        question (str): Câu hỏi của người dùng
-        system_prompt (str): System prompt với context về bookstore
-    
-    Returns:
-        str: Câu trả lời từ Gemini, hoặc None nếu có lỗi
-    """
     try:
         # Bước 1: Lấy Gemini client
         client = get_genai_client()
@@ -452,32 +539,6 @@ def query_gemini(question, system_prompt):
 
 @chatbot_bp.route('/chatbot', methods=['POST'])
 def chatbot():
-    """
-    Xử lý câu hỏi từ chatbot và trả về câu trả lời (luôn gọi Gemini API trước)
-    
-    Flow:
-    1. Lấy question từ request body
-    2. Validate question không rỗng
-    3. Kiểm tra GEMINI_API_KEY có tồn tại không
-    4. Nếu có API key:
-       - Lấy bookstore context từ database
-       - Build system prompt với context
-       - Gọi Gemini API với system prompt + user question
-       - Nếu thành công: trả về response từ Gemini
-       - Nếu fail: fallback về FAQ
-    5. Nếu không có API key: dùng FAQ matching
-    6. Trả về câu trả lời
-    
-    Request Body:
-        {
-            "question": "Câu hỏi của người dùng"
-        }
-    
-    Returns:
-        - 200: Câu trả lời từ Gemini hoặc FAQ
-        - 400: Thiếu question
-        - 500: Lỗi server
-    """
     try:
         # Bước 1: Lấy question từ request
         data = request.get_json()
@@ -562,4 +623,3 @@ def chatbot():
             'answer': FAQ_DATABASE.get('mặc định', 'Xin lỗi, có lỗi xảy ra. Vui lòng thử lại sau.'),
             'source': 'error'
         }), 200
-
