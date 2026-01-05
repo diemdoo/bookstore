@@ -55,4 +55,3 @@ export const PublicFooter: React.FC = () => {
     </footer>
   )
 }
-

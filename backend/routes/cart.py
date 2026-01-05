@@ -1,20 +1,3 @@
-"""
-File: routes/cart.py
-
-Mục đích:
-Xử lý các route liên quan đến quản lý giỏ hàng (thêm, cập nhật, xóa, xem)
-
-Các endpoint trong file này:
-- GET /api/cart: Lấy giỏ hàng của user hiện tại
-- POST /api/cart: Thêm sách vào giỏ hàng
-- PUT /api/cart/<id>: Cập nhật số lượng sách trong giỏ hàng
-- DELETE /api/cart/<id>: Xóa sách khỏi giỏ hàng
-
-Dependencies:
-- models.Cart: Model cho bảng cart
-- models.Book: Model cho bảng books (để validate stock)
-- utils.helpers: login_required decorator
-"""
 from flask import Blueprint, request, jsonify, session
 from models import Cart, Book, db
 from utils.helpers import login_required
@@ -24,19 +7,6 @@ cart_bp = Blueprint('cart', __name__)
 @cart_bp.route('/cart', methods=['GET'])
 @login_required
 def get_cart():
-    """
-    Lấy giỏ hàng của user hiện tại
-    
-    Flow:
-    1. Lấy user_id từ session (đã được kiểm tra bởi @login_required)
-    2. Query tất cả cart items của user (có JOIN với Book để lấy thông tin sách)
-    3. Tính tổng số lượng items trong giỏ
-    4. Trả về danh sách cart items với thông tin sách
-    
-    Returns:
-        - 200: Danh sách cart items
-        - 500: Lỗi server
-    """
     try:
         # Bước 1: Lấy user_id từ session
         user_id = session['user_id']
@@ -59,27 +29,6 @@ def get_cart():
 @cart_bp.route('/cart', methods=['POST'])
 @login_required
 def add_to_cart():
-    """
-    Thêm sách vào giỏ hàng
-    
-    Flow:
-    1. Lấy user_id từ session
-    2. Lấy book_id và quantity từ request body
-    3. Validate book_id và quantity
-    4. Kiểm tra sách có tồn tại không
-    5. Kiểm tra sách đã có trong giỏ chưa
-    6. Nếu có: Cộng thêm quantity vào quantity hiện tại
-    7. Nếu chưa: Tạo cart item mới
-    8. Validate stock còn đủ không (sau khi cộng)
-    9. Lưu vào database
-    10. Trả về thông tin cart item
-    
-    Returns:
-        - 200: Thêm vào giỏ hàng thành công
-        - 400: Dữ liệu không hợp lệ hoặc không đủ stock
-        - 404: Sách không tồn tại
-        - 500: Lỗi server
-    """
     try:
         # Bước 1: Lấy user_id từ session
         user_id = session['user_id']
@@ -158,27 +107,6 @@ def add_to_cart():
 @cart_bp.route('/cart/<int:cart_id>', methods=['PUT'])
 @login_required
 def update_cart_item(cart_id):
-    """
-    Cập nhật số lượng sách trong giỏ hàng
-    
-    Flow:
-    1. Lấy user_id từ session
-    2. Lấy quantity từ request body
-    3. Validate quantity
-    4. Kiểm tra cart item có tồn tại không
-    5. Kiểm tra cart item có thuộc về user không
-    6. Lấy thông tin sách
-    7. Validate stock còn đủ không
-    8. Cập nhật quantity
-    9. Lưu vào database
-    10. Trả về thông tin cart item đã cập nhật
-    
-    Returns:
-        - 200: Cập nhật thành công
-        - 400: Dữ liệu không hợp lệ hoặc không đủ stock
-        - 404: Cart item không tồn tại
-        - 500: Lỗi server
-    """
     try:
         # Bước 1: Lấy user_id từ session
         user_id = session['user_id']
@@ -229,22 +157,6 @@ def update_cart_item(cart_id):
 @cart_bp.route('/cart/<int:cart_id>', methods=['DELETE'])
 @login_required
 def remove_from_cart(cart_id):
-    """
-    Xóa sách khỏi giỏ hàng
-    
-    Flow:
-    1. Lấy user_id từ session
-    2. Kiểm tra cart item có tồn tại không
-    3. Kiểm tra cart item có thuộc về user không
-    4. Xóa cart item khỏi database
-    5. Trả về thông báo thành công
-    
-    Returns:
-        - 200: Xóa thành công
-        - 404: Cart item không tồn tại
-        - 403: Không có quyền xóa
-        - 500: Lỗi server
-    """
     try:
         # Bước 1: Lấy user_id từ session
         user_id = session['user_id']

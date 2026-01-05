@@ -1,24 +1,3 @@
-"""
-File: backend/models.py
-
-Mục đích:
-Định nghĩa các SQLAlchemy Models cho database, bao gồm User, Book, Category, Cart, Order, OrderItem, Banner.
-Các models này đại diện cho cấu trúc dữ liệu và relationships trong database.
-
-Các models trong file này:
-- User: Quản lý thông tin người dùng (admin và customer)
-- Book: Quản lý thông tin sách và tính toán số lượng đã bán
-- Category: Quản lý danh mục sách
-- Cart: Quản lý giỏ hàng của user
-- Order: Quản lý đơn hàng
-- OrderItem: Quản lý chi tiết từng item trong đơn hàng
-- Banner: Quản lý banner quảng cáo
-
-Dependencies:
-- flask_sqlalchemy: ORM framework để tương tác với database
-- sqlalchemy: Database operations (func, relationships)
-- datetime: Quản lý timestamp (created_at, updated_at)
-"""
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import func
 from datetime import datetime
@@ -27,31 +6,6 @@ from datetime import datetime
 db = SQLAlchemy()
 
 class User(db.Model):
-    """
-    Model cho bảng Users
-    
-    Mục đích:
-    Quản lý thông tin người dùng trong hệ thống, bao gồm admin và customer.
-    
-    Fields:
-    - id: Primary key
-    - username: Tên đăng nhập (unique)
-    - email: Email (unique)
-    - password_hash: Mật khẩu đã được hash bằng bcrypt
-    - full_name: Tên đầy đủ
-    - role: Vai trò (admin hoặc customer)
-    - is_active: Trạng thái hoạt động
-    - customer_code: Mã khách hàng (KH001, KH002, ...) - tự động generate
-    - created_at: Thời gian tạo tài khoản
-    
-    Relationships:
-    - cart_items: Danh sách items trong giỏ hàng (one-to-many)
-    - orders: Danh sách đơn hàng của user (one-to-many)
-    
-    Methods:
-    - to_dict(): Chuyển đổi model thành dictionary (không bao gồm password_hash)
-    - generate_customer_code(): Tạo mã khách hàng mới theo format KH001, KH002, ...
-    """
     __tablename__ = 'users'
     
     # Primary key
@@ -74,17 +28,6 @@ class User(db.Model):
     orders = db.relationship('Order', backref='user', lazy=True)
     
     def to_dict(self):
-        """
-        Chuyển đổi model thành dictionary để trả về JSON response
-        
-        Flow:
-        1. Tạo dictionary với tất cả fields (trừ password_hash)
-        2. Convert datetime sang ISO format string
-        3. Trả về dictionary
-        
-        Returns:
-            dict: Dictionary chứa thông tin user (không có password_hash)
-        """
         return {
             'id': self.id,
             'username': self.username,
@@ -98,18 +41,6 @@ class User(db.Model):
     
     @staticmethod
     def generate_customer_code():
-        """
-        Tạo mã khách hàng mới theo format KH001, KH002, KH003, ...
-        
-        Flow:
-        1. Query user có customer_code lớn nhất
-        2. Lấy số cuối cùng từ customer_code (ví dụ: KH001 -> 1)
-        3. Tăng lên 1 và format lại thành KH002, KH003, ...
-        4. Nếu chưa có customer nào, bắt đầu từ KH001
-        
-        Returns:
-            str: Mã khách hàng mới (ví dụ: "KH001", "KH002")
-        """
         # Bước 1: Tìm customer có mã lớn nhất
         last_customer = User.query.filter(
             User.customer_code.isnot(None)
@@ -128,38 +59,6 @@ class User(db.Model):
     
 
 class Book(db.Model):
-    """
-    Model cho bảng Books
-    
-    Mục đích:
-    Quản lý thông tin sách trong hệ thống, bao gồm thông tin cơ bản và chi tiết.
-    Có thể tính toán số lượng đã bán từ OrderItem.
-    
-    Fields:
-    - id: Primary key
-    - title: Tên sách
-    - author: Tác giả
-    - category: Danh mục sách (reference đến Category.key)
-    - description: Mô tả sách
-    - price: Giá bán
-    - stock: Số lượng tồn kho
-    - image_url: URL hình ảnh sách
-    - publisher: Nhà xuất bản
-    - publish_date: Ngày xuất bản
-    - distributor: Nhà phát hành
-    - dimensions: Kích thước (cm)
-    - pages: Số trang
-    - weight: Trọng lượng (gram)
-    - created_at, updated_at: Timestamps
-    
-    Relationships:
-    - cart_items: Danh sách items trong giỏ hàng chứa sách này (one-to-many)
-    - order_items: Danh sách order items chứa sách này (one-to-many)
-    
-    Methods:
-    - get_sold_count(): Tính số lượng đã bán từ OrderItem (chỉ tính order completed)
-    - to_dict(): Chuyển đổi model thành dictionary (bao gồm sold count)
-    """
     __tablename__ = 'books'
     
     # Primary key
@@ -195,18 +94,6 @@ class Book(db.Model):
     order_items = db.relationship('OrderItem', backref='book', lazy=True, cascade='all, delete-orphan')
     
     def get_sold_count(self):
-        """
-        Tính số lượng đã bán từ OrderItem (chỉ tính các order đã completed)
-        
-        Flow:
-        1. Query OrderItem join với Order
-        2. Filter theo book_id và order status = 'completed'
-        3. Sum tổng quantity của tất cả OrderItem
-        4. Trả về số lượng đã bán (0 nếu chưa có)
-        
-        Returns:
-            int: Số lượng đã bán (tổng quantity từ các order completed)
-        """
         # Import here to avoid circular dependency (OrderItem và Order được định nghĩa sau)
         from models import OrderItem, Order
         
@@ -222,19 +109,6 @@ class Book(db.Model):
         return int(total) if total else 0
     
     def to_dict(self):
-        """
-        Chuyển đổi model thành dictionary để trả về JSON response
-        
-        Flow:
-        1. Tạo dictionary với tất cả fields
-        2. Convert price từ Decimal sang float
-        3. Tính số lượng đã bán bằng get_sold_count()
-        4. Convert datetime sang ISO format string
-        5. Trả về dictionary
-        
-        Returns:
-            dict: Dictionary chứa thông tin sách (bao gồm sold count)
-        """
         return {
             'id': self.id,
             'book_code': self.book_code,
@@ -258,24 +132,6 @@ class Book(db.Model):
         }
 
 class Category(db.Model):
-    """
-    Model cho bảng Categories
-    
-    Mục đích:
-    Quản lý danh mục sách trong hệ thống (ví dụ: Sách Tiếng Việt, Văn Phòng Phẩm, ...).
-    
-    Fields:
-    - id: Primary key
-    - key: Key duy nhất của category (dùng trong URL, ví dụ: 'Sach_Tieng_Viet')
-    - name: Tên hiển thị của category (ví dụ: 'Sách Tiếng Việt')
-    - description: Mô tả category
-    - display_order: Thứ tự hiển thị trong UI (số nhỏ hơn hiển thị trước)
-    - is_active: Trạng thái hoạt động
-    - created_at, updated_at: Timestamps
-    
-    Methods:
-    - to_dict(): Chuyển đổi model thành dictionary
-    """
     __tablename__ = 'categories'
     
     # Primary key
@@ -297,17 +153,6 @@ class Category(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     def to_dict(self):
-        """
-        Chuyển đổi model thành dictionary để trả về JSON response
-        
-        Flow:
-        1. Tạo dictionary với tất cả fields
-        2. Convert datetime sang ISO format string
-        3. Trả về dictionary
-        
-        Returns:
-            dict: Dictionary chứa thông tin category
-        """
         return {
             'id': self.id,
             'category_code': self.category_code,
@@ -323,26 +168,6 @@ class Category(db.Model):
 
 
 class Cart(db.Model):
-    """
-    Model cho bảng Cart
-    
-    Mục đích:
-    Quản lý giỏ hàng của user, lưu trữ các sách mà user muốn mua.
-    
-    Fields:
-    - id: Primary key
-    - user_id: Foreign key đến User (user sở hữu giỏ hàng)
-    - book_id: Foreign key đến Book (sách trong giỏ hàng)
-    - quantity: Số lượng sách
-    - created_at: Thời gian thêm vào giỏ hàng
-    
-    Relationships:
-    - user: User sở hữu cart item này (via backref)
-    - book: Book trong cart item này (via backref)
-    
-    Methods:
-    - to_dict(): Chuyển đổi model thành dictionary (bao gồm thông tin book)
-    """
     __tablename__ = 'cart'
     
     # Primary key
@@ -357,18 +182,6 @@ class Cart(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     def to_dict(self):
-        """
-        Chuyển đổi model thành dictionary để trả về JSON response
-        
-        Flow:
-        1. Tạo dictionary với các fields cơ bản
-        2. Thêm thông tin book (nếu có) bằng cách gọi book.to_dict()
-        3. Convert datetime sang ISO format string
-        4. Trả về dictionary
-        
-        Returns:
-            dict: Dictionary chứa thông tin cart item (bao gồm book info)
-        """
         return {
             'id': self.id,
             'user_id': self.user_id,
@@ -379,28 +192,6 @@ class Cart(db.Model):
         }
 
 class Order(db.Model):
-    """
-    Model cho bảng Orders
-    
-    Mục đích:
-    Quản lý đơn hàng của user, lưu trữ thông tin đơn hàng và trạng thái.
-    
-    Fields:
-    - id: Primary key
-    - user_id: Foreign key đến User (user đặt hàng)
-    - total_amount: Tổng tiền đơn hàng
-    - status: Trạng thái đơn hàng (pending/confirmed/cancelled/completed)
-    - payment_status: Trạng thái thanh toán (pending/paid)
-    - shipping_address: Địa chỉ giao hàng
-    - created_at, updated_at: Timestamps
-    
-    Relationships:
-    - user: User đặt đơn hàng này (via backref)
-    - order_items: Danh sách items trong đơn hàng (one-to-many)
-    
-    Methods:
-    - to_dict(): Chuyển đổi model thành dictionary (bao gồm order_items)
-    """
     __tablename__ = 'orders'
     
     # Primary key
@@ -423,19 +214,6 @@ class Order(db.Model):
     order_items = db.relationship('OrderItem', backref='order', lazy=True, cascade='all, delete-orphan')
     
     def to_dict(self):
-        """
-        Chuyển đổi model thành dictionary để trả về JSON response
-        
-        Flow:
-        1. Tạo dictionary với các fields cơ bản
-        2. Convert total_amount từ Decimal sang float
-        3. Convert tất cả order_items sang dictionary
-        4. Convert datetime sang ISO format string
-        5. Trả về dictionary
-        
-        Returns:
-            dict: Dictionary chứa thông tin đơn hàng (bao gồm order_items)
-        """
         return {
             'id': self.id,
             'user_id': self.user_id,
@@ -449,26 +227,6 @@ class Order(db.Model):
         }
 
 class OrderItem(db.Model):
-    """
-    Model cho bảng OrderItems
-    
-    Mục đích:
-    Quản lý chi tiết từng item trong đơn hàng, lưu trữ thông tin sách và giá tại thời điểm mua.
-    
-    Fields:
-    - id: Primary key
-    - order_id: Foreign key đến Order (đơn hàng chứa item này)
-    - book_id: Foreign key đến Book (sách trong item)
-    - quantity: Số lượng sách
-    - price: Giá bán tại thời điểm mua (lưu để không bị ảnh hưởng khi giá thay đổi sau)
-    
-    Relationships:
-    - order: Order chứa item này (via backref)
-    - book: Book trong item này (via backref)
-    
-    Methods:
-    - to_dict(): Chuyển đổi model thành dictionary (bao gồm thông tin book)
-    """
     __tablename__ = 'order_items'
     
     # Primary key
@@ -483,18 +241,6 @@ class OrderItem(db.Model):
     price = db.Column(db.Numeric(10, 2), nullable=False)  # Giá tại thời điểm mua (không thay đổi khi giá sách thay đổi)
     
     def to_dict(self):
-        """
-        Chuyển đổi model thành dictionary để trả về JSON response
-        
-        Flow:
-        1. Tạo dictionary với các fields cơ bản
-        2. Convert price từ Decimal sang float
-        3. Thêm thông tin book (nếu có) bằng cách gọi book.to_dict()
-        4. Trả về dictionary
-        
-        Returns:
-            dict: Dictionary chứa thông tin order item (bao gồm book info)
-        """
         return {
             'id': self.id,
             'order_id': self.order_id,
@@ -505,28 +251,6 @@ class OrderItem(db.Model):
         }
 
 class Banner(db.Model):
-    """
-    Model cho bảng Banners
-    
-    Mục đích:
-    Quản lý banner quảng cáo hiển thị trên trang chủ, có thể có link và custom colors.
-    
-    Fields:
-    - id: Primary key
-    - title: Tiêu đề banner
-    - description: Mô tả banner
-    - image_url: URL hình ảnh banner
-    - link: Link khi click vào banner (optional, có thể là internal route hoặc external URL)
-    - bg_color: Màu nền (hex color, default: #6366f1 - primary color)
-    - text_color: Màu chữ (hex color, default: #ffffff - white)
-    - position: Vị trí hiển thị (main, side_top, side_bottom)
-    - display_order: Thứ tự hiển thị (số nhỏ hơn hiển thị trước)
-    - is_active: Trạng thái hoạt động
-    - created_at, updated_at: Timestamps
-    
-    Methods:
-    - to_dict(): Chuyển đổi model thành dictionary
-    """
     __tablename__ = 'banners'
     
     # Primary key
@@ -555,17 +279,6 @@ class Banner(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     def to_dict(self):
-        """
-        Chuyển đổi model thành dictionary để trả về JSON response
-        
-        Flow:
-        1. Tạo dictionary với tất cả fields
-        2. Convert datetime sang ISO format string
-        3. Trả về dictionary
-        
-        Returns:
-            dict: Dictionary chứa thông tin banner
-        """
         return {
             'id': self.id,
             'banner_code': self.banner_code,
@@ -581,4 +294,3 @@ class Banner(db.Model):
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
         }
-

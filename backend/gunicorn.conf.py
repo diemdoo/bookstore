@@ -1,12 +1,3 @@
-"""
-File: gunicorn.conf.py
-
-Mục đích:
-Gunicorn configuration file cho production deployment
-
-Lưu ý: File này được load bởi Gunicorn trước khi Flask app được khởi tạo,
-nên cần cẩn thận khi import Config. Sử dụng fallback về os.getenv() nếu cần.
-"""
 import multiprocessing
 import os
 from dotenv import load_dotenv
@@ -55,4 +46,3 @@ graceful_timeout = 30
 
 # Enable preload app for better performance
 preload_app = True
-

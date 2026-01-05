@@ -1,0 +1,250 @@
+{
+  "initial_orders": [
+    {
+      "username": "user1",
+      "status": "pending",
+      "payment_status": "pending",
+      "shipping_address": "123 Đường ABC, Phường XYZ, Quận 1, TP. Hồ Chí Minh",
+      "created_at_offset": "-1d",
+      "items": [
+        {
+          "book_title": "Đắc Nhân Tâm",
+          "quantity": 1
+        },
+        {
+          "book_title": "Nhà Giả Kim",
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "username": "user1",
+      "status": "confirmed",
+      "payment_status": "pending",
+      "shipping_address": "456 Đường DEF, Phường UVW, Quận 3, TP. Hồ Chí Minh",
+      "created_at_offset": "-2d",
+      "items": [
+        {
+          "book_title": "Sapiens: Lược Sử Loài Người",
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "username": "user1",
+      "status": "completed",
+      "payment_status": "paid",
+      "shipping_address": "789 Đường GHI, Phường RST, Quận 5, TP. Hồ Chí Minh",
+      "created_at_offset": "-5d",
+      "updated_at_offset": "-4d",
+      "items": [
+        {
+          "book_title": "Đắc Nhân Tâm",
+          "quantity": 2
+        },
+        {
+          "book_title": "Nhà Giả Kim",
+          "quantity": 3
+        },
+        {
+          "book_title": "Sapiens: Lược Sử Loài Người",
+          "quantity": 5
+        }
+      ]
+    },
+    {
+      "username": "user1",
+      "status": "cancelled",
+      "payment_status": "pending",
+      "shipping_address": "321 Đường JKL, Phường MNO, Quận 7, TP. Hồ Chí Minh",
+      "created_at_offset": "-3d",
+      "updated_at_offset": "-3d",
+      "items": [
+        {
+          "book_title": "Tuổi Trẻ Đáng Giá Bao Nhiêu",
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "username": "user2",
+      "status": "pending",
+      "payment_status": "pending",
+      "shipping_address": "654 Đường PQR, Phường STU, Quận 2, TP. Hồ Chí Minh",
+      "created_at_offset": "-12h",
+      "items": [
+        {
+          "book_title": "Nghĩ Giàu & Làm Giàu",
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "username": "user2",
+      "status": "confirmed",
+      "payment_status": "paid",
+      "shipping_address": "987 Đường VWX, Phường YZA, Quận 10, TP. Hồ Chí Minh",
+      "created_at_offset": "-1d",
+      "updated_at_offset": "-20h",
+      "items": [
+        {
+          "book_title": "Cây Cam Ngọt Của Tôi",
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "username": "user2",
+      "status": "completed",
+      "payment_status": "paid",
+      "shipping_address": "147 Đường BCD, Phường EFG, Quận Bình Thạnh, TP. Hồ Chí Minh",
+      "created_at_offset": "-7d",
+      "updated_at_offset": "-6d",
+      "items": [
+        {
+          "book_title": "Nghĩ Giàu & Làm Giàu",
+          "quantity": 6
+        },
+        {
+          "book_title": "Cây Cam Ngọt Của Tôi",
+          "quantity": 10
+        }
+      ]
+    },
+    {
+      "username": "user2",
+      "status": "pending",
+      "payment_status": "pending",
+      "shipping_address": "258 Đường HIJ, Phường KLM, Quận Tân Bình, TP. Hồ Chí Minh",
+      "created_at_offset": "-2h",
+      "items": [
+        {
+          "book_title": "Tôi Thấy Hoa Vàng Trên Cỏ Xanh",
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "username": "user1",
+      "status": "completed",
+      "payment_status": "paid",
+      "shipping_address": "369 Đường NOP, Phường QRS, Quận 11, TP. Hồ Chí Minh",
+      "created_at_offset": "-10d",
+      "updated_at_offset": "-9d",
+      "items": [
+        {
+          "book_title": "Tôi Thấy Hoa Vàng Trên Cỏ Xanh",
+          "quantity": 2
+        },
+        {
+          "book_title": "Cho Tôi Xin Một Vé Đi Tuổi Thơ",
+          "quantity": 3
+        },
+        {
+          "book_title": "Số Đỏ",
+          "quantity": 5
+        }
+      ]
+    },
+    {
+      "username": "user2",
+      "status": "completed",
+      "payment_status": "paid",
+      "shipping_address": "741 Đường TUV, Phường WXY, Quận Phú Nhuận, TP. Hồ Chí Minh",
+      "created_at_offset": "-12d",
+      "updated_at_offset": "-11d",
+      "items": [
+        {
+          "book_title": "Đắc Nhân Tâm",
+          "quantity": 3
+        },
+        {
+          "book_title": "Nhà Giả Kim",
+          "quantity": 2
+        },
+        {
+          "book_title": "Chí Phèo",
+          "quantity": 15
+        }
+      ]
+    },
+    {
+      "username": "user1",
+      "status": "completed",
+      "payment_status": "paid",
+      "shipping_address": "852 Đường ZAB, Phường CDE, Quận Gò Vấp, TP. Hồ Chí Minh",
+      "created_at_offset": "-15d",
+      "updated_at_offset": "-14d",
+      "items": [
+        {
+          "book_title": "Sapiens: Lược Sử Loài Người",
+          "quantity": 5
+        },
+        {
+          "book_title": "Tuổi Trẻ Đáng Giá Bao Nhiêu",
+          "quantity": 4
+        },
+        {
+          "book_title": "Nghĩ Giàu & Làm Giàu",
+          "quantity": 4
+        }
+      ]
+    }
+  ],
+  "random_orders_config": {
+    "count": 39,
+    "status_distribution": {
+      "completed": 0.5,
+      "confirmed": 0.2,
+      "pending": 0.2,
+      "cancelled": 0.1
+    },
+    "payment_status_distribution": {
+      "paid": 0.7,
+      "pending": 0.3
+    },
+    "date_range_days": 30,
+    "items_per_order": {
+      "min": 1,
+      "max": 3
+    },
+    "quantity_per_item": {
+      "min": 1,
+      "max": 5
+    },
+    "districts": [
+      "Quận 1",
+      "Quận 2",
+      "Quận 3",
+      "Quận 5",
+      "Quận 7",
+      "Quận 10",
+      "Quận 11",
+      "Quận Bình Thạnh",
+      "Quận Tân Bình",
+      "Quận Phú Nhuận",
+      "Quận Gò Vấp"
+    ],
+    "street_names": [
+      "ABC",
+      "DEF",
+      "GHI",
+      "JKL",
+      "MNO",
+      "PQR",
+      "STU",
+      "VWX",
+      "YZA"
+    ],
+    "ward_names": [
+      "XYZ",
+      "UVW",
+      "RST",
+      "MNO",
+      "KLM",
+      "HIJ",
+      "EFG",
+      "CDE"
+    ]
+  }
+}

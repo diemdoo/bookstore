@@ -10,7 +10,7 @@ import { useAuth } from '../../contexts/AuthContext'
 const StatisticsPage: React.FC = () => {
   const { user: currentUser } = useAuth()
   
-  // Chặn editor truy cập trang này
+
   if (currentUser?.role === 'editor') {
     return (
       <AdminLayout title="Thống Kê">

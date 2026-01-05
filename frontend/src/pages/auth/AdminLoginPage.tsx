@@ -101,7 +101,7 @@ const AdminLoginPage: React.FC = () => {
           {/* Info */}
           <div className="mt-6 p-4 bg-blue-50 rounded-lg">
             <p className="text-sm text-blue-800 text-center">
-              🔒 Trang dành riêng cho quản trị viên
+               Trang dành riêng cho quản trị viên
             </p>
           </div>
         </div>
